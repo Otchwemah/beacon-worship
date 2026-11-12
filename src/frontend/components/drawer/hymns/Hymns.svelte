@@ -1,8 +1,7 @@
 <script lang="ts">
     import type { ShowList } from "../../../../types/Show"
-    import { activePopup, activeProfile, activeShow, categories, drawer, focusedArea, sortedShowsList, special } from "../../../stores"
+    import { activePopup, activeProfile, activeShow, categories, drawer, focusedArea, hymnSearchValue, sortedShowsList, special } from "../../../stores"
     import { getAccess } from "../../../utils/profile"
-    import { formatSearch, showSearch } from "../../../utils/search"
     import T from "../../helpers/T.svelte"
     import Icon from "../../helpers/Icon.svelte"
     import { dateToString } from "../../helpers/time"
@@ -13,7 +12,7 @@
     import Center from "../../system/Center.svelte"
     import SelectElem from "../../system/SelectElem.svelte"
     import VirtualList from "../VirtualList.svelte"
-    import { filterHymnDecks, getHymnNumber, sortHymnDecks } from "./hymns"
+    import { filterHymnDecks, getHymnNumber, searchHymnDecks, sortHymnDecks } from "./hymns"
 
     // Beacon Worship — standalone Hymns library.
     // Single-click selects the deck in the Show panel only; double-click selects AND
@@ -23,8 +22,10 @@
     export let active: string | null = null
     export let searchValue = ""
 
-    $: query = (searchValue || "").trim()
-    $: isSearching = formatSearch(query).trim().length > 1
+    // dedicated Hymns search bar (in the Hymns navigation). Number matching applies only
+    // when the query is numeric; otherwise it matches deck names. See searchHymnDecks().
+    $: query = ($hymnSearchValue || "").trim()
+    $: isSearching = query.length > 0
     $: category = active || "all"
 
     $: profile = $activeProfile ? getAccess("shows") : {}
@@ -63,7 +64,7 @@
     }
     function update() {
         shouldUpdate = false
-        filtered = isSearching ? showSearch(query, hymnDecks) : hymnDecks
+        filtered = searchHymnDecks(hymnDecks, query)
     }
 
     function label(show: ShowList): string {
@@ -88,7 +89,7 @@
             {#key category}
                 <VirtualList items={filtered} let:item={show} activeIndex={filtered.findIndex((a) => a.id === $activeShow?.id)}>
                     <SelectElem id="show_drawer" data={{ id: show.id }} shiftRange={filtered} draggable>
-                        <ShowButton id={show.id} {show} data={label(show)} class="#drawer_show_button" match={show.match || null} searchValue={query} icon />
+                        <ShowButton id={show.id} {show} data={label(show)} class="#drawer_show_button" match={null} searchValue={query} icon />
                     </SelectElem>
                 </VirtualList>
             {/key}

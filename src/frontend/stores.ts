@@ -160,6 +160,8 @@ export const exportOptions: Writable<any> = writable({ pdf: { rows: 5, columns: 
 
 // CACHE
 export const sortedShowsList: Writable<ShowList[]> = writable([])
+// Beacon Worship: dedicated Hymns search query (number-aware), transient UI state
+export const hymnSearchValue: Writable<string> = writable("")
 export const cachedShowsData: Writable<any> = writable({})
 export const quickTextCache: Writable<{ name: string; text: string; fromSearch?: boolean }> = writable({ name: "", text: "" })
 export const loadedMediaThumbnails: Writable<{ [key: string]: string }> = writable({})

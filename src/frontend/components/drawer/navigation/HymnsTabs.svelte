@@ -1,28 +1,21 @@
 <script lang="ts">
-    import { get } from "svelte/store"
-    import { activeProfile, categories, drawerTabsData, showsCache, sortedShowsList, special } from "../../../stores"
-    import { newToast } from "../../../utils/common"
+    import { activeProfile, categories, drawerTabsData, hymnSearchValue, sortedShowsList, special } from "../../../stores"
+    import { translateText } from "../../../utils/language"
     import { getAccess } from "../../../utils/profile"
-    import { imageExtensions } from "../../../values/extensions"
+    import Icon from "../../helpers/Icon.svelte"
     import { sortObject } from "../../helpers/array"
-    import T from "../../helpers/T.svelte"
-    import { history } from "../../helpers/history"
-    import { loadShows } from "../../helpers/setShow"
-    import MaterialFilePicker from "../../inputs/MaterialFilePicker.svelte"
-    import { applyHymnBackground, filterHymnDecks, getHymnCategoryIds } from "../hymns/hymns"
+    import { filterHymnDecks, getHymnCategoryIds } from "../hymns/hymns"
     import NavigationSections from "./NavigationSections.svelte"
 
     // Beacon Worship — Hymns left navigation: "All hymns" plus one entry per hymn book
-    // (category) that actually contains hymn decks, and a saved-background picker that
-    // replaces the background on every hymn slide. Categories are managed in the Shows
-    // tab; this panel only navigates and sets the shared hymn background.
+    // (category) that actually contains hymn decks, and a dedicated hymn search bar.
+    // The saved hymn background now lives in Settings → General. Categories are managed
+    // in the Shows tab; this panel only navigates and searches.
 
     $: profile = $activeProfile ? getAccess("shows") : {}
-    $: readOnly = profile.global === "read"
     $: activeSubTab = $drawerTabsData.hymns?.activeSubTab || ""
 
     $: hymnCategoryIds = $special.hymnCategoryIds || []
-    $: hymnBackground = $special.hymnBackgroundImage || ""
     $: hiddenCategoryIds = Object.entries(profile)
         .filter(([, level]) => level === "none")
         .map(([id]) => id)
@@ -51,59 +44,67 @@
             { id: "unlabeled", label: "category.unlabeled", icon: "noIcon", count: unlabeledCount, hidden: !unlabeledCount && activeSubTab !== "unlabeled" }
         ],
         books.length ? [{ id: "TITLE", label: "hymns.books" }, ...books] : [],
-        [{ id: "TITLE", label: "hymns.background" }]
+        [{ id: "TITLE", label: "hymns.search" }]
     ]
-
-    // Selecting a saved background image replaces the background on ALL hymn slides.
-    // The choice is persisted in `special.hymnBackgroundImage` and also applied to future
-    // PowerPoint imports. This only edits show data; it never calls setOutput itself.
-    let applying = false
-    async function setBackground(e: any) {
-        const path = (e.detail || "").trim()
-        if (applying || path === hymnBackground) return
-
-        special.update((a) => ({ ...a, hymnBackgroundImage: path }))
-
-        const ids = unarchivedDecks.map((s) => s.id)
-        if (!ids.length) {
-            newToast(path ? "hymns.background_saved" : "hymns.background_cleared")
-            return
-        }
-
-        applying = true
-        try {
-            await loadShows(ids)
-            const now = Date.now()
-            const data = ids
-                .map((id) => {
-                    const show = get(showsCache)[id]
-                    if (!show) return null
-                    const { slides, layouts } = applyHymnBackground(show, path)
-                    return { id, show: { slides, layouts, timestamps: { ...show.timestamps, modified: now } } }
-                })
-                .filter(Boolean)
-
-            if (data.length) history({ id: "SHOWS", newData: { data, replace: true }, location: { page: "drawer" } })
-            newToast(path ? "hymns.background_applied" : "hymns.background_cleared")
-        } finally {
-            applying = false
-        }
-    }
 </script>
 
 <NavigationSections {sections} active={activeSubTab}>
-    <div slot="section_2" class="background-picker">
-        <MaterialFilePicker label="hymns.background_label" value={hymnBackground} filter={{ name: "Images", extensions: imageExtensions }} on:change={setBackground} disabled={readOnly || applying} allowEmpty showThumbnail />
-        <p class="hint"><T id="hymns.background_hint" /></p>
+    <div slot="section_2" class="hymn-search">
+        <div class="search-box">
+            <Icon id="search" size={0.9} />
+            <input class="edit" type="text" placeholder={translateText("hymns.search_placeholder")} bind:value={$hymnSearchValue} />
+            {#if $hymnSearchValue}
+                <button class="clear" title={translateText("clear.search")} on:click={() => hymnSearchValue.set("")}>
+                    <Icon id="close" size={0.8} />
+                </button>
+            {/if}
+        </div>
+        <p class="hint">{translateText("hymns.search_hint")}</p>
     </div>
 </NavigationSections>
 
 <style>
-    .background-picker {
+    .hymn-search {
         padding: 8px;
         display: flex;
         flex-direction: column;
         gap: 6px;
+    }
+
+    .search-box {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 4px 8px;
+        background-color: var(--primary-darkest);
+        border: 1px solid var(--primary-lighter);
+        border-radius: 6px;
+    }
+
+    .search-box input {
+        flex: 1;
+        min-width: 0;
+        background: transparent;
+        border: none;
+        outline: none;
+        color: var(--text);
+        font-size: 0.85em;
+        padding: 4px 0;
+    }
+
+    .clear {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        color: var(--text);
+        opacity: 0.6;
+        padding: 2px;
+    }
+    .clear:hover {
+        opacity: 1;
     }
 
     .hint {

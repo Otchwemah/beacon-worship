@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { ShowList } from "../../../../types/Show"
-import { applyHymnBackground, filterHymnDecks, getHymnCategoryIds, getHymnNumber, isHymnDeck, sortHymnDecks } from "./hymns"
+import { applyHymnBackground, filterHymnDecks, getHymnCategoryIds, getHymnNumber, isHymnDeck, searchHymnDecks, sortHymnDecks } from "./hymns"
 
 function show(partial: Partial<ShowList> & { id: string }): ShowList {
     return { name: "", category: null, timestamps: { created: 0, modified: null, used: null }, ...partial } as ShowList
@@ -105,6 +105,43 @@ describe("getHymnCategoryIds", () => {
     it("lists only categories that actually contain hymn decks", () => {
         const shows = [show({ id: "1", origin: "powerpoint", category: "phb" }), show({ id: "2", category: "songs" }), show({ id: "3", origin: "powerpoint", category: "mhb" }), show({ id: "4", origin: "powerpoint", category: null })]
         expect(getHymnCategoryIds(shows).sort()).toEqual(["mhb", "phb"])
+    })
+})
+
+describe("searchHymnDecks", () => {
+    const decks = [
+        show({ id: "a", name: "PHB 108 - Amazing Grace", origin: "powerpoint" }),
+        show({ id: "b", name: "PHB 10 - Blessed Assurance", origin: "powerpoint" }),
+        show({ id: "c", name: "PHB 100 - Holy Holy", origin: "powerpoint" }),
+        show({ id: "d", name: "Untitled Deck", origin: "powerpoint" })
+    ]
+
+    it("returns everything for an empty query", () => {
+        expect(searchHymnDecks(decks, "").map((d) => d.id)).toEqual(["a", "b", "c", "d"])
+        expect(searchHymnDecks(decks, "   ").map((d) => d.id)).toEqual(["a", "b", "c", "d"])
+    })
+
+    it("matches hymn numbers only for a numeric query (prefix)", () => {
+        expect(searchHymnDecks(decks, "108").map((d) => d.id)).toEqual(["a"])
+        expect(searchHymnDecks(decks, "10").map((d) => d.id)).toEqual(["a", "b", "c"])
+        expect(searchHymnDecks(decks, "100").map((d) => d.id)).toEqual(["c"])
+    })
+
+    it("matches names only for a text query — never numbers", () => {
+        expect(searchHymnDecks(decks, "grace").map((d) => d.id)).toEqual(["a"])
+        expect(searchHymnDecks(decks, "holy").map((d) => d.id)).toEqual(["c"])
+        // a text query that looks like a number-word still matches names, not numbers
+        expect(searchHymnDecks(decks, "PHB").map((d) => d.id)).toEqual(["a", "b", "c"])
+    })
+
+    it("returns nothing when there is no match", () => {
+        expect(searchHymnDecks(decks, "999")).toEqual([])
+        expect(searchHymnDecks(decks, "zzz")).toEqual([])
+    })
+
+    it("handles empty input", () => {
+        expect(searchHymnDecks([], "108")).toEqual([])
+        expect(searchHymnDecks(undefined as any, "108")).toEqual([])
     })
 })
 

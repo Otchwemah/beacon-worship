@@ -4,6 +4,7 @@
     import { isGroupHidden } from "../../../utils/profile"
     import { sortByName } from "../../helpers/array"
     import Title from "../../input/Title.svelte"
+    import HymnBackground from "./HymnBackground.svelte"
     import MaterialDropdown from "../../inputs/MaterialDropdown.svelte"
     import MaterialPopupButton from "../../inputs/MaterialPopupButton.svelte"
     import MaterialToggleSwitch from "../../inputs/MaterialToggleSwitch.svelte"
@@ -58,3 +59,8 @@
 
 <!-- when disabled: no ./F2 to clear, F5 clears slide timer instead of next slide, no PageUp/PageDown/Home/End for slide navigation -->
 <!-- <Checkbox checked={$special.disablePresenterControllerKeys} on:change={(e) => updateSpecial(e.target.checked, "disablePresenterControllerKeys")} /> -->
+
+<!-- HYMNS -->
+
+<Title label="hymns.background" icon="book" />
+<HymnBackground />

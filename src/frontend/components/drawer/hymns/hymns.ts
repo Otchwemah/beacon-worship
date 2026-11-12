@@ -75,6 +75,26 @@ export function filterHymnDecks(shows: ShowList[], options: HymnFilterOptions = 
     })
 }
 
+/**
+ * Hymn search for the dedicated Hymns search bar.
+ * Number matching is used ONLY when the query is numeric: a digits-only query matches hymn
+ * numbers (by prefix, so "10" finds 10, 100…109). Any other query matches deck names only —
+ * it never matches on numbers. Empty query returns everything.
+ */
+export function searchHymnDecks(decks: ShowList[], query: string): ShowList[] {
+    const q = (query || "").trim().toLowerCase()
+    if (!q) return decks || []
+
+    if (/^\d+$/.test(q)) {
+        return (decks || []).filter((deck) => {
+            const n = getHymnNumber(deck)
+            return n !== null && String(n).startsWith(q)
+        })
+    }
+
+    return (decks || []).filter((deck) => (deck.name || "").toLowerCase().includes(q))
+}
+
 /** Order hymn decks by hymn number (natural, not lexicographic), then name. Unnumbered go last. */
 export function sortHymnDecks(shows: ShowList[]): ShowList[] {
     return [...(shows || [])].sort((a, b) => {
