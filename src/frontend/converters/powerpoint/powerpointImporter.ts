@@ -3,7 +3,7 @@ import { uid } from "uid"
 import type { Show, Slide, SlideData } from "../../../types/Show"
 import { ShowObj } from "../../classes/Show"
 import { checkName } from "../../components/helpers/show"
-import { activePopup, alertMessage, drawerTabsData } from "../../stores"
+import { drawerTabsData } from "../../stores"
 import { translateText } from "../../utils/language"
 import { createCategory, setTempShows } from "../importHelpers"
 import { PowerPointPackage } from "./PowerPointHelper"
@@ -13,8 +13,9 @@ import { PowerPointPackage } from "./PowerPointHelper"
 // extract embedded videos/audio
 
 export function convertPowerpoint(files: any[]) {
-    activePopup.set("alert")
-    alertMessage.set("popup.importing")
+    // Beacon Worship: hymn/PPT imports must not raise the blocking "Importing..." alert.
+    // The import dialog already closes itself; setTempShows() still emits the normal
+    // finished toast when conversion completes.
 
     // use selected category (or Presentation if no specific is selected)
     let categoryId = get(drawerTabsData).shows?.activeSubTab
