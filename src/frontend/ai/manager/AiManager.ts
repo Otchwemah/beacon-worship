@@ -8,6 +8,8 @@ import { getFirstActiveOutput } from "../../components/helpers/output"
 import { setActiveScripture } from "../../converters/bible"
 import { ai, aiSuggestions, drawerTabsData, outputs, scriptures } from "../../stores"
 import { newToast } from "../../utils/common"
+import { handleHymnCommand } from "../hymns/hymnCommandHandler"
+import { detectHymnCommand } from "../hymns/hymnCommands"
 import { getLLMManager } from "../llm/llmManager"
 import { BibleCacheManager } from "../scripture/BibleCacheManager"
 import { detectBibleVersion } from "../scripture/BibleVersionDetector"
@@ -24,6 +26,15 @@ export class AiManager {
 
         const searchId = ++this.latestSearchId
         const isCancelled = () => searchId !== this.latestSearchId
+
+        // Beacon Worship: explicit local hymn-number commands are resolved against the
+        // local library BEFORE Scripture detection or any LLM fallback, so they never
+        // reach a cloud provider and never depend on the auto-present Scripture policy.
+        const hymnCommand = detectHymnCommand(chunk.chunkWithOverlap)
+        if (hymnCommand) {
+            await handleHymnCommand(hymnCommand)
+            return
+        }
 
         const stringMatch = await this.stringDetection(chunk.chunkWithOverlap, isCancelled)
         if (isCancelled()) return

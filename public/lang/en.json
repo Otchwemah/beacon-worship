@@ -430,7 +430,11 @@
         "background_hint": "Replaces the background on every hymn slide. Also applied to newly imported hymn decks.",
         "background_saved": "Hymn background saved",
         "background_applied": "Hymn background applied to all hymns",
-        "background_cleared": "Hymn background cleared"
+        "background_cleared": "Hymn background cleared",
+        "voice_presented": "Hymn $1 presented",
+        "voice_unavailable": "Hymn $1 is not in the local library",
+        "voice_ambiguous": "Multiple hymns numbered $1 — select one in the Hymns tab",
+        "voice_error": "Could not present the requested hymn"
     },
     "tabs": {
         "shows": "Shows",
