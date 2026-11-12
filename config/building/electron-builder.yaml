@@ -30,7 +30,11 @@ extraResources:
 
 win:
     target: NSIS
-    icon: build/public/icon.png
+    # Beacon Worship: use the generated multi-size .ico (16/24/32px are rendered with
+    # tighter padding so the mark stays legible in the title bar and taskbar) instead
+    # of letting electron-builder derive one from the PNG. Regenerate with
+    # scripts/branding/generate-icons.py
+    icon: build/public/icon.ico
     files:
         - "!**/node_modules/openmediatransport/lib/{macos,linux-*,win-arm64}/**"
     asarUnpack:
@@ -73,7 +77,10 @@ deb:
 # macos
 
 mac:
-    icon: build/public/icon.png
+    # Beacon Worship: use the generated .icns, which follows Apple's icon grid
+    # (1024 canvas / 824 rounded content tile, transparent margin) so the app sits
+    # natively in the Dock. Revert to icon.png here for a full-square macOS icon.
+    icon: build/public/icon.icns
     files:
         - "!**/node_modules/openmediatransport/lib/{linux-*,win-*}/**"
     asarUnpack:
