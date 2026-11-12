@@ -33,7 +33,7 @@ win:
     # Beacon Worship: use the generated multi-size .ico (16/24/32px are rendered with
     # tighter padding so the mark stays legible in the title bar and taskbar) instead
     # of letting electron-builder derive one from the PNG. Regenerate with
-    # scripts/branding/generate-icons.py
+    # scripts/branding/generate-brand-assets.py
     icon: build/public/icon.ico
     files:
         - "!**/node_modules/openmediatransport/lib/{macos,linux-*,win-arm64}/**"

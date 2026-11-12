@@ -1,12 +1,12 @@
 #!/usr/bin/env python3
 """
-Beacon Worship — app icon generator.
+Beacon Worship — brand asset generator (app icons + macOS DMG background).
 
 Standalone branding tool. It is NOT part of the npm build and adds no npm dependency.
 Requires Pillow:  python3 -m pip install Pillow
 
 Usage (from the repo root):
-    python3 scripts/branding/generate-icons.py
+    python3 scripts/branding/generate-brand-assets.py
 
 Reads the user-supplied master lockup and writes the icons the app actually consumes:
 
@@ -14,10 +14,12 @@ Reads the user-supplied master lockup and writes the icons the app actually cons
     public/512x512.png     512x512   duplicate of icon.png (kept in sync, upstream had it too)
     public/icon.ico        multi-res Windows taskbar / installer icon
     public/icon.icns       macOS app / Dock icon
+    public/dmg.png         540x380 macOS DMG installer background
 
 `scripts/postBuild.js` copies public/ -> build/public/, which is where
-config/building/electron-builder.yaml points (win/mac icon: build/public/icon.png,
-linux icon: build/public). So public/ is the single source of truth.
+config/building/electron-builder.yaml points (win.icon: build/public/icon.ico,
+mac.icon: build/public/icon.icns, linux.icon: build/public, dmg.background:
+build/public/dmg.png). So public/ is the single source of truth.
 
 Design notes
 ------------
@@ -54,6 +56,22 @@ ICO_SIZES = [16, 24, 32, 48, 64, 128, 256]
 ICO_SMALL_MAX = 32
 ICO_SMALL_FILL = 0.96
 
+# macOS DMG installer window. Size and icon centres must match the `dmg` section of
+# config/building/electron-builder.yaml (contents at x=140,y=150 and x=400,y=150).
+DMG_W, DMG_H = 540, 380
+DMG_ICON_Y = 150
+DMG_ICON_X = (140, 400)
+BRAND_GOLD = (219, 172, 100)
+BRAND_TEAL = (71, 148, 149)
+
+# Only used for the small install hint; the wordmark itself comes from the logo image
+# so its typography is always brand-accurate rather than font-dependent.
+FONT_CANDIDATES = [
+    "/usr/lib/R/library/grDevices/fonts/Montserrat/static/Montserrat-Medium.ttf",
+    "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf",
+    "/usr/local/lib/python3.13/site-packages/matplotlib/mpl-data/fonts/ttf/DejaVuSans.ttf",
+]
+
 
 def detect_background(im):
     """Median-ish background colour sampled from the four corners."""
@@ -85,14 +103,13 @@ def detect_icon_bbox(im, bg):
             start = None
 
     # a band in the lower part separates the icon from the wordmark
-    split = None
     for a, b in bands:
         if a > top + (bottom - top) * 0.55:
-            split = a
-            break
-    if split is None:
-        return bbox, None
-    return mask.crop((0, 0, w, split)).getbbox(), (split, bottom)
+            # icon = everything above the band; wordmark = everything BELOW it.
+            # Using the band end (not its start) keeps the empty gap out of the
+            # wordmark crop, otherwise the gap offsets the text when it is placed.
+            return mask.crop((0, 0, w, a)).getbbox(), (b + 1, bottom)
+    return bbox, None
 
 
 def fit(art, target):
@@ -126,6 +143,92 @@ def mac_icon(art, bg, canvas_size=MAC_CANVAS, fill=MAC_FILL):
 
     canvas = Image.new("RGBA", (canvas_size, canvas_size), (0, 0, 0, 0))
     canvas.alpha_composite(tile, (margin, margin))
+    return canvas
+
+
+def load_font(size):
+    from PIL import ImageFont
+
+    for path in FONT_CANDIDATES:
+        if Path(path).exists():
+            try:
+                return ImageFont.truetype(path, size)
+            except Exception:
+                continue
+    return ImageFont.load_default()
+
+
+def keyed_wordmark(im, bg, wordmark_rows):
+    """The wordmark with its background keyed out.
+
+    Safe here (unlike the icon): the wordmark is bright text on a dark field with no
+    cut-outs, so removing the background cannot erase part of the artwork. This lets it
+    sit on the DMG gradient without a visible rectangle.
+    """
+    top, bottom = wordmark_rows
+    w, h = im.size
+    flat = Image.new("RGB", im.size, bg)
+    mask = ImageChops.difference(im, flat).convert("L").point(lambda p: 255 if p > 28 else 0)
+    bbox = mask.crop((0, top, w, min(h, bottom + 1))).getbbox()
+    if not bbox:
+        return None
+    left, _, right, _ = bbox
+    crop = im.crop((left, top, right, bottom + 1)).convert("RGB")
+
+    cw, ch = crop.size
+    alpha = Image.new("L", (cw, ch), 0)
+    src, dst = crop.load(), alpha.load()
+    for y in range(ch):
+        for x in range(cw):
+            r, g, b = src[x, y]
+            diff = max(abs(r - bg[0]), abs(g - bg[1]), abs(b - bg[2]))
+            dst[x, y] = min(255, diff * 2)
+    out = crop.convert("RGBA")
+    out.putalpha(alpha)
+    return out
+
+
+def dmg_background(art, bg, wordmark):
+    """540x380 installer background.
+
+    Finder draws the two icons centred at (140,150) and (400,150) plus their labels
+    below, so branding goes above y~80 and the hint below y~270 to avoid collisions.
+    """
+    from PIL import ImageDraw
+
+    canvas = Image.new("RGB", (DMG_W, DMG_H), bg)
+    d = ImageDraw.Draw(canvas)
+    top = tuple(min(255, c + 8) for c in bg)
+    deep = (11, 17, 25)
+    for y in range(DMG_H):
+        t = y / (DMG_H - 1)
+        d.line([(0, y), (DMG_W, y)], fill=tuple(round(top[i] + (deep[i] - top[i]) * t) for i in range(3)))
+
+    # wordmark across the top
+    if wordmark is not None:
+        wm = wordmark.copy()
+        target_w = 300
+        wm = wm.resize((target_w, max(1, round(wm.height * target_w / wm.width))), Image.LANCZOS)
+        canvas.paste(wm, ((DMG_W - wm.width) // 2, 32), wm)
+
+    # gold drag arrow between the two icon positions
+    cx, cy = DMG_W // 2, DMG_ICON_Y
+    d.line([(cx - 26, cy), (cx + 16, cy)], fill=BRAND_GOLD, width=4)
+    d.polygon([(cx + 14, cy - 11), (cx + 30, cy), (cx + 14, cy + 11)], fill=BRAND_GOLD)
+
+    # hint + attribution, below Finder's icon labels
+    hint = load_font(15)
+    small = load_font(10)
+    text = "Drag Beacon Worship to Applications to install"
+    tw = d.textlength(text, font=hint)
+    d.text(((DMG_W - tw) / 2, 288), text, font=hint, fill=(233, 238, 245))
+
+    note = "Independent build based on FreeShow  ·  GPL-3.0"
+    nw = d.textlength(note, font=small)
+    d.text(((DMG_W - nw) / 2, 318), note, font=small, fill=(120, 133, 148))
+
+    # thin brand rule under the wordmark
+    d.line([(DMG_W / 2 - 60, 72), (DMG_W / 2 + 60, 72)], fill=BRAND_TEAL, width=1)
     return canvas
 
 
@@ -179,6 +282,10 @@ def main():
     mac = mac_icon(art, bg)
     mac.save(PUBLIC / "icon.icns")
     print("wrote public/icon.icns (1024 squircle master)")
+
+    wordmark = keyed_wordmark(im, bg, wordmark) if wordmark else None
+    dmg_background(art, bg, wordmark).save(PUBLIC / "dmg.png", optimize=True)
+    print(f"wrote public/dmg.png ({DMG_W}x{DMG_H})")
 
 
 if __name__ == "__main__":

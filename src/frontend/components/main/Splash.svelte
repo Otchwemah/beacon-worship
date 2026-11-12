@@ -39,6 +39,10 @@
         return finalText.replaceAll("\n", "<br>").replace(/\s+/g, " ").trim()
     }
 
+    // Beacon Worship mark (icon-only crop of the selected logo). Falls back to the
+    // text heading alone if the asset cannot load.
+    let logoAvailable = true
+
     let votd: string = ""
     onMount(async () => {
         if ($special.splashText) return
@@ -47,6 +51,9 @@
 </script>
 
 <Center class="context #splash">
+    {#if logoAvailable}
+        <img class="splash-logo" src="./assets/beacon-worship-mark.png" alt="" draggable={false} on:error={() => (logoAvailable = false)} />
+    {/if}
     <h1>Beacon Worship</h1>
     <p style="opacity: 0.7;">v{$version}</p>
     {#if $special.splashText}
@@ -99,6 +106,16 @@
 </Center>
 
 <style>
+    .splash-logo {
+        width: 84px;
+        height: 84px;
+        object-fit: contain;
+        border-radius: 19px;
+        margin-bottom: 12px;
+        flex-shrink: 0;
+        box-shadow: 0 6px 20px rgb(0 0 0 / 0.35);
+    }
+
     h1 {
         font-size: 4em;
         overflow: initial;
@@ -135,15 +152,30 @@
         h1 {
             font-size: 3em;
         }
+        .splash-logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 14px;
+            margin-bottom: 8px;
+        }
     }
     @media screen and (max-height: 400px) {
         h1 {
             font-size: 2em;
         }
+        /* too little vertical room — keep the heading, drop the mark */
+        .splash-logo {
+            display: none;
+        }
     }
     @media screen and (max-width: 800px) {
         h1 {
             font-size: 2em;
+        }
+        .splash-logo {
+            width: 60px;
+            height: 60px;
+            border-radius: 14px;
         }
     }
 </style>
