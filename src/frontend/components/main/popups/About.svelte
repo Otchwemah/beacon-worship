@@ -4,8 +4,11 @@
     import Link from "../../inputs/Link.svelte"
     import MaterialButton from "../../inputs/MaterialButton.svelte"
 
-    // Beacon Worship logo (selected concept). Hidden gracefully until the asset is
-    // present at public/assets/beacon-worship-logo.png — no unrelated replacement.
+    // Beacon Worship logo (user-selected concept).
+    // Master lockup: public/assets/beacon-worship-logo.png (as supplied, unaltered).
+    // About uses beacon-worship-mark.png — the same artwork cropped to the icon only,
+    // so it stays legible at 40px and doesn't duplicate the "Beacon Worship" heading.
+    // Falls back to the text heading if the image cannot load.
     let logoAvailable = true
 
     const assets: { name: string; url: string; title?: string }[] = [
@@ -29,7 +32,7 @@
 <div style="text-align: center;">
     <div class="logo">
         {#if logoAvailable}
-            <img style="height: 35px;" src="./assets/beacon-worship-logo.png" alt="Beacon Worship logo" draggable={false} on:error={() => (logoAvailable = false)} />
+            <img class="logo-mark" src="./assets/beacon-worship-mark.png" alt="Beacon Worship logo" draggable={false} on:error={() => (logoAvailable = false)} />
         {/if}
         <h1 style="color: var(--text);font-size: 1.7em;">Beacon Worship</h1>
     </div>
@@ -106,6 +109,14 @@
         padding: 0px 10px;
         width: 100%;
         gap: 10px;
+    }
+
+    .logo-mark {
+        height: 40px;
+        width: 40px;
+        border-radius: 9px;
+        flex-shrink: 0;
+        object-fit: contain;
     }
 
     h5 {
