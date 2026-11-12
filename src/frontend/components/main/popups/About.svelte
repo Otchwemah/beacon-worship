@@ -4,6 +4,10 @@
     import Link from "../../inputs/Link.svelte"
     import MaterialButton from "../../inputs/MaterialButton.svelte"
 
+    // Beacon Worship logo (selected concept). Hidden gracefully until the asset is
+    // present at public/assets/beacon-worship-logo.png — no unrelated replacement.
+    let logoAvailable = true
+
     const assets: { name: string; url: string; title?: string }[] = [
         { name: "CMG Sans (Custom font)", url: "https://www.churchmotiongraphics.com/cmg-sans/" },
         { name: "Google Fonts (Icons)", url: "https://fonts.google.com/icons/" },
@@ -24,8 +28,10 @@
 
 <div style="text-align: center;">
     <div class="logo">
-        <img style="height: 35px;" src="./import-logos/freeshow.webp" alt="FreeShow-logo" draggable={false} />
-        <h1 style="color: var(--text);font-size: 1.7em;">FreeShow</h1>
+        {#if logoAvailable}
+            <img style="height: 35px;" src="./assets/beacon-worship-logo.png" alt="Beacon Worship logo" draggable={false} on:error={() => (logoAvailable = false)} />
+        {/if}
+        <h1 style="color: var(--text);font-size: 1.7em;">Beacon Worship</h1>
     </div>
 
     <p style="font-size: 0.8em;margin-top: 2px;">
@@ -33,6 +39,11 @@
         <MaterialButton variant="outlined" style="margin-left: 5px;display: inline-flex;min-height: 0;padding: 0 5px;vertical-align: baseline;" on:click={() => activePopup.set("update_manager")} white>
             <T id="about.check_updates" />
         </MaterialButton>
+    </p>
+
+    <p class="disclaimer">
+        Beacon Worship is an independent customized build based on FreeShow 1.6.6. It is not an official FreeShow release.
+        FreeShow is open-source software (GPL-3.0) by Kristoffer Vassbø / ChurchApps; upstream copyright, attribution and notices are retained.
     </p>
 
     <!-- <p>
@@ -102,6 +113,14 @@
         text-transform: uppercase;
         font-size: 0.9em;
         margin-bottom: 5px;
+    }
+
+    .disclaimer {
+        font-size: 0.75em;
+        opacity: 0.75;
+        max-width: 480px;
+        margin: 10px auto 0;
+        line-height: 1.5;
     }
 
     hr {

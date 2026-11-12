@@ -12,9 +12,13 @@ export interface MatchResult {
     content: string // "scripture" = reference (e.g., "Genesis 1:1")
     confidence: number // 1-100
 
-    scriptureMatchType?: "content"
+    // "reference" = an explicitly spoken reference or verse-navigation cue (may auto-present per settings)
+    // "content"   = an inferred/paraphrased verse-content match (suggestion only, never auto-present)
+    // missing     = unclassified (e.g. from an LLM) — treated as unsafe to auto-present
+    scriptureMatchType?: "reference" | "content"
     scriptureTranslation?: string
     scriptureIsNewTranslation?: boolean
+    rationale?: string
 }
 
 export interface AiSuggestion {
@@ -26,6 +30,8 @@ export interface AiSuggestion {
     trigger?: () => void
 
     scriptureTranslation?: string
+    scriptureMatchType?: "reference" | "content"
+    rationale?: string
 }
 
 // models

@@ -3,12 +3,14 @@
     import T from "../../../components/helpers/T.svelte"
     import MaterialButton from "../../../components/inputs/MaterialButton.svelte"
     import Center from "../../../components/system/Center.svelte"
-    import { aiSmartAction, aiSttStatus, aiSuggestions, outLocked, scriptures, sttTranscript } from "../../../stores"
+    import { aiSuggestions, outLocked, scriptures, sttTranscript, aiSttStatus } from "../../../stores"
     import { translateText } from "../../../utils/language"
     import { Transcript } from "../../stt/transcript"
     import ConfidenceMeter from "./ConfidenceMeter.svelte"
 
     export let state: "loading" | "inactive" | "error" | "listening" | "processing" = "inactive"
+    // compact = the bottom-right info area variant (tighter spacing, same content)
+    export let compact = false
 
     // the transcript follows the speech while pinned to the bottom - scrolling up to read
     // history stops the auto-jump until the user returns to the bottom
@@ -35,17 +37,32 @@
     }
 
     // SUGGESTIONS
-    // confident suggestions surface here so the operator can present them with one click
+    // Suggestions live here in the persistent panel — never in a transient popup.
+    // Inferred/content matches and alternative translations are preview-only: the
+    // operator must explicitly approve them before anything goes live.
 
     $: suggestions = $aiSuggestions
 
     function removeSuggestion(id: string) {
-        aiSmartAction.update((cur) => (cur?.id === id ? null : cur))
         aiSuggestions.update((list) => list.filter((item) => item.id !== id))
+    }
+
+    function clearSuggestions() {
+        aiSuggestions.set([])
+    }
+
+    function presentSuggestion(suggestion: (typeof suggestions)[number]) {
+        suggestion.trigger?.()
+    }
+
+    function matchTypeLabel(suggestion: (typeof suggestions)[number]): string {
+        if (suggestion.scriptureMatchType === "reference") return "Explicit reference"
+        if (suggestion.scriptureMatchType === "content") return "Verse content"
+        return "Unclassified"
     }
 </script>
 
-<div class="card-body">
+<div class="card-body" class:compact>
     {#if state === "error"}
         <p class="placeholder error">{translateText($aiSttStatus.message || "Something went wrong...")}</p>
     {:else if state === "processing"}
@@ -74,7 +91,14 @@
 </div>
 
 {#if suggestions.length}
-    <div class="suggestions-panel">
+    <div class="suggestions-panel" class:compact>
+        <div class="suggestions-header">
+            <span class="suggestions-title">Suggestions</span>
+            <span class="suggestions-hint">preview before presenting</span>
+            <div class="fill"></div>
+            <MaterialButton icon="delete" title="Clear all suggestions" style="padding: 4px;" on:click={clearSuggestions} />
+        </div>
+
         {#each suggestions as suggestion (suggestion.id)}
             <div class="suggestion">
                 <div class="suggestionHeader">
@@ -90,25 +114,23 @@
                         <ConfidenceMeter confidence={suggestion.confidence} />
                     {/if}
 
-                    <div class="fill" />
+                    <div class="fill"></div>
 
                     {#if suggestion.action === "presented"}
                         <MaterialButton icon="check" title="ai.auto_present" style="padding: 6px;" disabled />
                     {:else if suggestion.action === "open_scripture"}
-                        <MaterialButton icon="scripture" disabled={$outLocked} title="actions.switch" style="padding: 6px;" on:click={() => suggestion.trigger?.()} />
+                        <MaterialButton icon="scripture" disabled={$outLocked} title="actions.switch" style="padding: 6px;" on:click={() => presentSuggestion(suggestion)} />
                     {:else if suggestion.trigger}
-                        <MaterialButton
-                            icon="play"
-                            disabled={$outLocked}
-                            title="menu._title_display"
-                            style="padding: 6px;"
-                            on:click={() => {
-                                suggestion.trigger?.()
-                                // removeSuggestion(suggestion.id)
-                            }}
-                        />
+                        <MaterialButton icon="play" disabled={$outLocked} title="Present live (operator approval)" style="padding: 6px;" on:click={() => presentSuggestion(suggestion)} />
                     {/if}
-                    <MaterialButton icon="delete" title="actions.remove" style="padding: 6px;" on:click={() => removeSuggestion(suggestion.id)} />
+                    <MaterialButton icon="delete" title="Dismiss suggestion" style="padding: 6px;" on:click={() => removeSuggestion(suggestion.id)} />
+                </div>
+
+                <div class="suggestionMeta">
+                    <span class="match-type" class:inferred={suggestion.scriptureMatchType !== "reference"}>{matchTypeLabel(suggestion)}</span>
+                    {#if suggestion.rationale}
+                        <span class="rationale">{suggestion.rationale}</span>
+                    {/if}
                 </div>
             </div>
         {/each}
@@ -120,7 +142,6 @@
         position: relative;
 
         flex: 1;
-        /* padding: 5px; */
         display: flex;
         align-items: center;
         justify-content: center;
@@ -146,6 +167,10 @@
         white-space: initial;
         overflow-wrap: anywhere;
         padding: 10px 25px;
+    }
+    .card-body.compact .transcript-box p {
+        padding: 6px 10px;
+        font-size: 0.85rem;
     }
 
     .transcript-actions {
@@ -178,21 +203,42 @@
 
     .suggestion {
         display: flex;
-        align-items: center;
-        gap: 8px;
+        flex-direction: column;
+        gap: 2px;
         padding: 5px 14px;
     }
 
     .suggestions-panel {
         display: flex;
         flex-direction: column;
-        gap: 6px;
+        gap: 4px;
         max-height: 180px;
         overflow-y: auto;
         flex-shrink: 0;
 
         background-color: rgb(0 0 0 / 0.1);
         border-top: 1px solid rgba(0, 0, 0, 0.3);
+    }
+    .suggestions-panel.compact {
+        max-height: 120px;
+    }
+    .suggestions-panel.compact .suggestion {
+        padding: 3px 8px;
+    }
+
+    .suggestions-header {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        padding: 3px 10px 0;
+        font-size: 0.75em;
+    }
+    .suggestions-title {
+        font-weight: 600;
+        opacity: 0.9;
+    }
+    .suggestions-hint {
+        opacity: 0.5;
     }
 
     .fill {
@@ -207,6 +253,29 @@
     }
     .suggestionHeader .reference {
         font-weight: 600;
+        white-space: nowrap;
+    }
+
+    .suggestionMeta {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        font-size: 0.72em;
+        opacity: 0.85;
+        padding-inline-start: 2px;
+    }
+    .match-type {
+        font-weight: 600;
+        color: #2ecc71;
+        white-space: nowrap;
+    }
+    .match-type.inferred {
+        color: #f1c40f;
+    }
+    .rationale {
+        opacity: 0.7;
+        overflow: hidden;
+        text-overflow: ellipsis;
         white-space: nowrap;
     }
 

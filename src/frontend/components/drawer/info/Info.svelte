@@ -1,5 +1,6 @@
 <script lang="ts">
-    import { activeShow, focusMode, forceClock } from "../../../stores"
+    import AiTranscription from "../../../ai/components/floating/AiTranscription.svelte"
+    import { activeShow, ai, aiSttStatus, focusMode, forceClock, infoAreaMode, sttTempDisabled } from "../../../stores"
     import Icon from "../../helpers/Icon.svelte"
     import FloatingInputs from "../../input/FloatingInputs.svelte"
     import MaterialButton from "../../inputs/MaterialButton.svelte"
@@ -19,10 +20,25 @@
     const hasOptions = ["shows", "media", "templates", "scripture", "calendar"]
     let optionsOpen = false
     $: if (id) optionsOpen = false
+
+    // Beacon Worship: the bottom-right info area can switch between the usual
+    // time/date/info display and live transcription. The regular display is never
+    // removed — the toggle always switches back. This is non-modal and never
+    // touches audience-facing outputs.
+    $: transcriptionActive = $ai.enabled && $infoAreaMode === "transcription"
+
+    function toggleTranscription() {
+        infoAreaMode.update((mode) => (mode === "transcription" ? "default" : "transcription"))
+    }
+
+    // coarse listening state for the info-area transcript (the AI panel owns the session)
+    $: infoState = $sttTempDisabled ? "inactive" : $aiSttStatus.state === "listening" ? "listening" : $aiSttStatus.state === "error" ? "error" : "inactive"
 </script>
 
 <div class="main {id !== 'shows' || $activeShow !== null ? 'context #drawer_info' : ''}">
-    {#if !$forceClock && id === "shows"}
+    {#if transcriptionActive}
+        <AiTranscription state={infoState} compact />
+    {:else if !$forceClock && id === "shows"}
         <ShowInfo {optionsOpen} />
     {:else if !$forceClock && id === "media"}
         <MediaInfo {optionsOpen} />
@@ -45,7 +61,15 @@
         </Center>
     {/if}
 
-    {#if !$forceClock && hasOptions.includes(id) && !$focusMode}
+    {#if $ai.enabled}
+        <FloatingInputs side="left" bottom={6}>
+            <MaterialButton icon={transcriptionActive ? "clock" : "microphone"} isActive={transcriptionActive} title={transcriptionActive ? "Switch back to time / date / info" : "Show live transcription here"} on:click={toggleTranscription}>
+                <span style="font-size: 0.85em;">{transcriptionActive ? "Info" : "Transcript"}</span>
+            </MaterialButton>
+        </FloatingInputs>
+    {/if}
+
+    {#if !transcriptionActive && !$forceClock && hasOptions.includes(id) && !$focusMode}
         <FloatingInputs round>
             <MaterialButton isActive={optionsOpen} title="edit.options" on:click={() => (optionsOpen = !optionsOpen)}>
                 <Icon size={1.1} id="options" white={!optionsOpen} />

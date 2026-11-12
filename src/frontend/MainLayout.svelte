@@ -1,5 +1,5 @@
 <script lang="ts">
-    import AiFloating from "./ai/components/floating/AiFloating.svelte"
+    import AiPanel from "./ai/components/panel/AiPanel.svelte"
     import { customActionActivation } from "./components/actions/actions"
     import DrawTabs from "./components/draw/DrawTabs.svelte"
     import Navigation from "./components/edit/Navigation.svelte"
@@ -103,6 +103,11 @@
                 {:else if page === "settings"}
                     <LazyLoad component={() => import("./components/settings/SettingsTools.svelte")} show={page === "settings"} />
                 {/if}
+
+                <!-- Beacon Worship: persistent, non-modal Local AI panel (never a dialog/popup) -->
+                {#if $ai.enabled}
+                    <AiPanel />
+                {/if}
             </div>
         </Resizeable>
     </div>
@@ -121,10 +126,6 @@
 
     {#if $showChangeProfileMenu && $activeProfile !== null}
         <ProfileChangerMenu />
-    {/if}
-
-    {#if $ai.enabled}
-        <AiFloating />
     {/if}
 
     <Tipbar />

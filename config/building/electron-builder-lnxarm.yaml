@@ -1,6 +1,6 @@
 appId: app.freeshow
-productName: FreeShow
-artifactName: FreeShow-${version}-${arch}.${ext}
+productName: Beacon Worship
+artifactName: BeaconWorship-${version}-${arch}.${ext}
 
 files:
     - build/electron/**

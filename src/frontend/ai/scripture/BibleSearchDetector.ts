@@ -37,7 +37,9 @@ export class BibleSearchDetector {
                 return {
                     type: "scripture",
                     content: `${chapterData.bookName} ${chapterData.chapterNumber}:1`,
-                    confidence: 75
+                    confidence: 75,
+                    scriptureMatchType: "reference",
+                    rationale: "Spoken Bible reference (chapter only, starting at verse 1)"
                 }
             }
 
@@ -51,7 +53,9 @@ export class BibleSearchDetector {
             return {
                 type: "scripture",
                 content: referenceContent,
-                confidence: 98
+                confidence: 98,
+                scriptureMatchType: "reference",
+                rationale: "Explicitly spoken Bible reference"
             }
         }
 
@@ -97,7 +101,9 @@ export class BibleSearchDetector {
             return {
                 type: "scripture",
                 content: referenceContent,
-                confidence: isSequential ? 85 : 80
+                confidence: isSequential ? 85 : 80,
+                scriptureMatchType: "reference",
+                rationale: isSequential ? "Spoken verse number continuing the current passage" : "Spoken verse number in the current passage"
             }
         }
 
@@ -125,7 +131,7 @@ export class BibleSearchDetector {
         const chapterData = this.cacheData.referenceIndex.get(`${current.book.toLowerCase()} ${current.chapter}`)
         if (!chapterData || cue > chapterData.verseCount) return null
 
-        return { type: "scripture", content: `${chapterData.bookName} ${chapterData.chapterNumber}:${cue}`, confidence: 85 }
+        return { type: "scripture", content: `${chapterData.bookName} ${chapterData.chapterNumber}:${cue}`, confidence: 85, scriptureMatchType: "reference", rationale: "Spoken verse-number cue following the live verse" }
     }
 
     // share of the verse's word weight that the spoken words account for
@@ -381,7 +387,7 @@ export class BibleSearchDetector {
         }
 
         return {
-            match: { type: "scripture", content: topMatch.ref, confidence, scriptureMatchType: "content" },
+            match: { type: "scripture", content: topMatch.ref, confidence, scriptureMatchType: "content", rationale: "Inferred from spoken verse content (preview only)" },
             hasAnyCandidates: true,
             isAmbiguous
         }
@@ -435,6 +441,9 @@ export class BibleSearchDetector {
         if (this.DEBUG_MODE) console.log("[DETECTION] Best content match:", bestContentMatch)
 
         if (refMatch && refMatch.confidence >= 75) {
+            // an explicitly spoken reference is never downgraded to an inferred content match
+            // when both resolve to the same verse — keep the "reference" classification
+            if (bestContentMatch && bestContentMatch.content === refMatch.content) return refMatch
             if (bestContentMatch && bestContentMatch.confidence >= 80) return bestContentMatch
             return refMatch
         }

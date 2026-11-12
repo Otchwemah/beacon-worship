@@ -6,12 +6,13 @@ import { startScripture } from "../../components/actions/apiHelper"
 import { keysToID } from "../../components/helpers/array"
 import { getFirstActiveOutput } from "../../components/helpers/output"
 import { setActiveScripture } from "../../converters/bible"
-import { ai, aiSmartAction, aiSuggestions, drawerTabsData, outputs, scriptures } from "../../stores"
+import { ai, aiSuggestions, drawerTabsData, outputs, scriptures } from "../../stores"
 import { newToast } from "../../utils/common"
 import { getLLMManager } from "../llm/llmManager"
 import { BibleCacheManager } from "../scripture/BibleCacheManager"
 import { detectBibleVersion } from "../scripture/BibleVersionDetector"
 import { isReferenceWithin } from "../scripture/references"
+import { evaluateAutoPresent } from "./autoPresentPolicy"
 
 export class AiManager {
     private static lastMatch: number = 0
@@ -37,6 +38,10 @@ export class AiManager {
 
         const llmManager = getLLMManager()
         if (!llmManager) return
+
+        // Beacon Worship: unmatched transcripts are only sent to a LOCAL LLM (Ollama).
+        // Cloud-capable providers (Anthropic/OpenAI/Google) never receive booth audio transcripts.
+        if (llmManager.providerId !== "ollama") return
 
         // only report to LLM if nothing is auto detected
         const llmMatch = await llmManager.detectMatch(chunk)
@@ -132,7 +137,9 @@ export class AiManager {
             id: uid(5),
             timestamp: Date.now(),
             content: match.content,
-            confidence: match.confidence
+            confidence: match.confidence,
+            scriptureMatchType: match.scriptureMatchType,
+            rationale: match.rationale
         }
         if (match.scriptureIsNewTranslation) suggestionDraft.scriptureTranslation = match.scriptureTranslation
 
@@ -171,24 +178,21 @@ export class AiManager {
     private static shouldAutoPlay(match: MatchResult): boolean {
         if (match.confidence <= 95 && this.alreadySuggested(match)) return false
 
-        if (match.type === "scripture_version") return false
-        if (match.type !== "scripture") return false // WIP currently only auto-plays scripture matches
-
-        if (match.type === "scripture" && match.scriptureIsNewTranslation) return false
-
-        // never auto-play low confidence matches
-        if (match.confidence <= 50) return false
-
         const now = Date.now()
         // skip if the output was manually updated recently
         if (this.lastOutputUpdate && now - this.lastOutputUpdate < this.MAX_AUTO_PLAY_INTERVAL) return false
 
-        const confidence = get(ai)[match.type]?.confidence || "ask"
+        const confidence = get(ai)[match.type as "scripture"]?.confidence || "ask"
         if (confidence === "ask") return false
 
-        const autoPlay = match.confidence > this.getConfidenceScore(confidence)
-        if (autoPlay) this.listenToOutput()
-        return autoPlay
+        // Beacon Worship live policy: only confident, explicitly spoken references may
+        // auto-present. Content/inferred matches, alternative translations, unclassified
+        // and non-Scripture results are always operator-previewed (see autoPresentPolicy.ts).
+        const decision = evaluateAutoPresent(match, this.getConfidenceScore(confidence))
+        if (!decision.allowed) return false
+
+        this.listenToOutput()
+        return true
     }
 
     private static getConfidenceScore(confidence: ConfidenceLevels): number {
@@ -219,28 +223,11 @@ export class AiManager {
 
     /////
 
-    private static smartActionTimer: NodeJS.Timeout | null = null
-    private static SMART_ACTION_DURATION = 30 * 1000 // 30 seconds
-    private static setSmartAction(content: AiSuggestion) {
-        aiSmartAction.set(content)
-
-        const TIMEOUT = content.action === "presented" ? 4000 : this.SMART_ACTION_DURATION
-
-        if (this.smartActionTimer) {
-            clearTimeout(this.smartActionTimer)
-            this.smartActionTimer = null
-        }
-        this.smartActionTimer = setTimeout(() => {
-            this.smartActionTimer = null
-            aiSmartAction.update((a) => (a?.id === content.id ? null : a))
-        }, TIMEOUT)
-    }
-
     private static SUGGESTION_MAX_AGE = 5 * 60 * 1000 // 5 minutes
     private static SUGGESTION_LIMIT = 15
     private static addSuggestion(content: AiSuggestion) {
-        this.setSmartAction(content)
-
+        // Beacon Worship: suggestions live only in the persistent, non-modal AI panel.
+        // No transient Smart Action popup is shown.
         aiSuggestions.update((list) => {
             const now = Date.now()
 

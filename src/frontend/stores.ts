@@ -218,10 +218,13 @@ export type SlideHighlight = { indexes: number[]; color?: string; icon?: string 
 export const slideDeleteHighlight: Writable<SlideHighlight> = writable(null)
 
 // AI
+// Beacon Worship: the bottom-right drawer info area can switch between the usual
+// time/date/info display and live transcription. "default" keeps the regular display.
+export type InfoAreaMode = "default" | "transcription"
+export const infoAreaMode: Writable<InfoAreaMode> = writable("default")
 export const aiSttStatus: Writable<{ state: "inactive" | "listening" | "stopped" | "error"; message?: string }> = writable({ state: "inactive" })
 export const aiLlmStatus: Writable<AiFeatureStatus> = writable({ state: "stopped" })
 export const aiSuggestions: Writable<AiSuggestion[]> = writable([])
-export const aiSmartAction: Writable<AiSuggestion | null> = writable(null)
 export const sttTranscript: Writable<{ finalized: string; unprocessed: string }> = writable({ finalized: "", unprocessed: "" })
 export const sttTempDisabled: Writable<boolean> = writable(false)
 
@@ -450,6 +453,7 @@ export const $ = {
     previousShow,
     projectToolSize,
     forceClock,
+    infoAreaMode,
     os,
     undoHistory,
     redoHistory,
