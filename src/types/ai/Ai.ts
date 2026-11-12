@@ -29,8 +29,9 @@ export interface AiSuggestion {
     confidence: number
     trigger?: () => void
 
-    // "hymn" = an explicit local hymn-number command (not a Scripture match)
-    kind?: "hymn"
+    // "hymn" = an explicit local hymn-number command; "scripture_command" = an explicit
+    // Scripture navigation/version command (not an inferred verse-content match)
+    kind?: "hymn" | "scripture_command"
     scriptureTranslation?: string
     scriptureMatchType?: "reference" | "content"
     rationale?: string

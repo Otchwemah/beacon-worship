@@ -8,6 +8,11 @@ import { normalizeReferences } from "./references"
 export class BibleSearchDetector {
     constructor(private cacheData: BibleCacheData) {}
 
+    /** Local reference index, used by explicit verse-navigation commands. */
+    public get referenceIndex() {
+        return this.cacheData.referenceIndex
+    }
+
     public findReferenceMatch(cleanInput: string): MatchResult | null {
         if (!this.cacheData.refRegex) return null
 

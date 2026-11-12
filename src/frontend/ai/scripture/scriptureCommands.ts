@@ -1,0 +1,112 @@
+/**
+ * Beacon Worship — explicit Scripture voice commands (next/previous verse, version change).
+ *
+ * These are deliberate operator commands, distinct from inferred verse-content matches.
+ * Navigation commands are resolved against the LOCAL Bible cache and then handed to the
+ * existing Scripture auto-present policy as `reference`-type matches, so the operator's
+ * confidence setting still decides live vs preview. Version changes stay local-only and
+ * suggestion-based. Pure detection + resolution live here and are unit-tested.
+ */
+
+export type VerseDirection = "next" | "previous"
+
+export interface VerseNavigationCommand {
+    direction: VerseDirection
+    confidence: number
+    rationale: string
+    raw: string
+}
+
+const NEXT_VERSE_REGEX = /\b(?:next|forward|advance)\s+(?:verse|verses)\b/i
+const PREVIOUS_VERSE_REGEX = /\b(?:previous|prev|back|last)\s+(?:verse|verses)\b/i
+
+export function detectVerseNavigationCommand(text: string): VerseNavigationCommand | null {
+    if (!text || !text.trim()) return null
+
+    const next = text.match(NEXT_VERSE_REGEX)
+    if (next) return { direction: "next", confidence: 98, rationale: `Explicit next-verse command: "${next[0].trim()}".`, raw: next[0].trim() }
+
+    const previous = text.match(PREVIOUS_VERSE_REGEX)
+    if (previous) return { direction: "previous", confidence: 98, rationale: `Explicit previous-verse command: "${previous[0].trim()}".`, raw: previous[0].trim() }
+
+    return null
+}
+
+export interface VersionChangeCommand {
+    query: string
+    confidence: number
+    rationale: string
+    raw: string
+}
+
+// "change to the ESV version", "switch to KJV translation", "use the NIV bible".
+// A version/translation/bible keyword is required so this never fires on generic phrases.
+const VERSION_CHANGE_REGEX = /\b(?:change|switch|use|read|go|turn)\s+(?:over\s+)?(?:to|into|unto)?\s*(?:the\s+)?([A-Za-z0-9 ]+?)\s+(?:version|translation|bible)\b/i
+
+export function detectVersionChangeCommand(text: string): VersionChangeCommand | null {
+    if (!text || !text.trim()) return null
+    const match = text.match(VERSION_CHANGE_REGEX)
+    if (!match) return null
+
+    const query = match[1].trim()
+    if (!query) return null
+
+    return { query, confidence: 95, rationale: `Explicit version-change command: "${match[0].trim()}".`, raw: match[0].trim() }
+}
+
+export interface ParsedReference {
+    book: string
+    chapter: number
+    verse: number
+}
+
+export function parseScriptureReference(refStr: string): ParsedReference | null {
+    if (!refStr) return null
+    const match = refStr.match(/^((?:[1-3]\s+)?[\p{L}\s]+)\s+(\d+):(\d+)(?:-(\d+))?$/u)
+    if (!match) return null
+    return {
+        book: match[1].trim(),
+        chapter: parseInt(match[2], 10),
+        verse: match[4] ? parseInt(match[4], 10) : parseInt(match[3], 10)
+    }
+}
+
+/** Minimal shape of BibleCacheData.referenceIndex needed for navigation. */
+export type ReferenceIndex = Map<string, { bookName: string; chapterNumber: number; verseCount: number }>
+
+export type VerseNavigationResolution =
+    | { status: "navigate"; content: string }
+    | { status: "unavailable"; reason: "no_current" | "unknown_chapter" | "end_of_book" | "start_of_book" }
+
+/** Resolve a next/previous-verse command against the local Bible reference index. Pure. */
+export function resolveVerseNavigation(direction: VerseDirection, currentRef: string | null | undefined, referenceIndex: ReferenceIndex): VerseNavigationResolution {
+    const current = currentRef ? parseScriptureReference(currentRef) : null
+    if (!current) return { status: "unavailable", reason: "no_current" }
+
+    const key = `${current.book.toLowerCase()} ${current.chapter}`
+    const chapterData = referenceIndex.get(key)
+    if (!chapterData) return { status: "unavailable", reason: "unknown_chapter" }
+
+    if (direction === "next") {
+        if (current.verse < chapterData.verseCount) {
+            return { status: "navigate", content: `${chapterData.bookName} ${chapterData.chapterNumber}:${current.verse + 1}` }
+        }
+        const nextChapter = referenceIndex.get(`${current.book.toLowerCase()} ${current.chapter + 1}`)
+        if (nextChapter && nextChapter.verseCount >= 1) {
+            return { status: "navigate", content: `${nextChapter.bookName} ${nextChapter.chapterNumber}:1` }
+        }
+        return { status: "unavailable", reason: "end_of_book" }
+    }
+
+    // previous
+    if (current.verse > 1) {
+        return { status: "navigate", content: `${chapterData.bookName} ${chapterData.chapterNumber}:${current.verse - 1}` }
+    }
+    const prevChapter = referenceIndex.get(`${current.book.toLowerCase()} ${current.chapter - 1}`)
+    if (prevChapter && prevChapter.verseCount >= 1) {
+        return { status: "navigate", content: `${prevChapter.bookName} ${prevChapter.chapterNumber}:${prevChapter.verseCount}` }
+    }
+    return { status: "unavailable", reason: "start_of_book" }
+}
+
+export const SCRIPTURE_COMMAND_DEDUPE_MS = 4000

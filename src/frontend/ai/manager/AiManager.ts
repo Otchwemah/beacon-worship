@@ -8,18 +8,24 @@ import { getFirstActiveOutput } from "../../components/helpers/output"
 import { setActiveScripture } from "../../converters/bible"
 import { ai, aiSuggestions, drawerTabsData, outputs, scriptures } from "../../stores"
 import { newToast } from "../../utils/common"
+import { translateText } from "../../utils/language"
 import { handleHymnCommand } from "../hymns/hymnCommandHandler"
 import { detectHymnCommand } from "../hymns/hymnCommands"
 import { getLLMManager } from "../llm/llmManager"
 import { BibleCacheManager } from "../scripture/BibleCacheManager"
 import { detectBibleVersion } from "../scripture/BibleVersionDetector"
 import { isReferenceWithin } from "../scripture/references"
+import { detectVerseNavigationCommand, detectVersionChangeCommand, resolveVerseNavigation, SCRIPTURE_COMMAND_DEDUPE_MS, type VerseNavigationCommand, type VersionChangeCommand } from "../scripture/scriptureCommands"
 import { evaluateAutoPresent } from "./autoPresentPolicy"
 
 export class AiManager {
     private static lastMatch: number = 0
     private static MAX_LLM_REQUEST_AFTER_MATCH = 5000
     private static latestSearchId: number = 0
+
+    // dedupe for explicit Scripture commands (repeated transcript chunks)
+    private static lastNavCommand: { direction: string; time: number } | null = null
+    private static lastVersionCommand: { query: string; time: number } | null = null
 
     static async processSTTChunk(chunk: { chunkWithOverlap: string; newWordsCount: number; confidence?: number }) {
         this.triggerBackgroundPreload()
@@ -33,6 +39,20 @@ export class AiManager {
         const hymnCommand = detectHymnCommand(chunk.chunkWithOverlap)
         if (hymnCommand) {
             await handleHymnCommand(hymnCommand)
+            return
+        }
+
+        // Explicit Scripture navigation / version commands. Navigation is resolved against
+        // the local Bible and then passed through the normal auto-present policy as a
+        // reference-type match; version changes stay local-only and suggestion-based.
+        const navCommand = detectVerseNavigationCommand(chunk.chunkWithOverlap)
+        if (navCommand) {
+            await this.handleVerseNavigation(navCommand)
+            return
+        }
+        const versionCommand = detectVersionChangeCommand(chunk.chunkWithOverlap)
+        if (versionCommand) {
+            await this.handleVersionChange(versionCommand)
             return
         }
 
@@ -230,6 +250,75 @@ export class AiManager {
             // reset output updates when not "manually" played
             this.lastOutputUpdate = 0
         }, 500)
+    }
+
+    /////
+    // Explicit Scripture commands (next/previous verse, version change).
+
+    private static async handleVerseNavigation(command: VerseNavigationCommand) {
+        const now = Date.now()
+        if (this.lastNavCommand && this.lastNavCommand.direction === command.direction && now - this.lastNavCommand.time < SCRIPTURE_COMMAND_DEDUPE_MS) return
+        this.lastNavCommand = { direction: command.direction, time: now }
+
+        const activeBibleId = get(drawerTabsData)?.scripture?.activeSubTab
+        const scriptureData = activeBibleId ? get(scriptures)[activeBibleId] : null
+        if (!activeBibleId || !scriptureData || scriptureData.api) {
+            this.reportScriptureCommandUnavailable(command.rationale, "ai.nav_no_local_bible")
+            return
+        }
+
+        const detector = await BibleCacheManager.getCache(activeBibleId)
+        if (!detector) {
+            this.reportScriptureCommandUnavailable(command.rationale, "ai.nav_no_local_bible")
+            return
+        }
+
+        const resolution = resolveVerseNavigation(command.direction, this.liveContent, detector.referenceIndex)
+        if (resolution.status === "navigate") {
+            // hand through the normal policy: reference-type, operator confidence decides live vs preview
+            this.newMatch({
+                type: "scripture",
+                content: resolution.content,
+                confidence: command.confidence,
+                scriptureMatchType: "reference",
+                rationale: command.rationale
+            })
+            return
+        }
+
+        const key =
+            resolution.reason === "no_current" ? "ai.nav_no_current" : resolution.reason === "end_of_book" ? "ai.nav_end_of_book" : resolution.reason === "start_of_book" ? "ai.nav_start_of_book" : "ai.nav_unknown_chapter"
+        this.reportScriptureCommandUnavailable(command.rationale, key)
+    }
+
+    private static async handleVersionChange(command: VersionChangeCommand) {
+        const now = Date.now()
+        const query = command.query.toLowerCase()
+        if (this.lastVersionCommand && this.lastVersionCommand.query === query && now - this.lastVersionCommand.time < SCRIPTURE_COMMAND_DEDUPE_MS) return
+        this.lastVersionCommand = { query, time: now }
+
+        // detectBibleVersion only returns LOCAL, non-active versions; anything else is unavailable
+        const match = await detectBibleVersion(command.query)
+        if (match) {
+            this.newMatch(match)
+            return
+        }
+
+        this.reportScriptureCommandUnavailable(command.rationale, "ai.version_unavailable", [command.query])
+    }
+
+    private static reportScriptureCommandUnavailable(rationale: string, messageKey: string, replaceValues: string[] = []) {
+        const message = translateText(messageKey, null, replaceValues)
+        newToast(message)
+        this.addSuggestion({
+            id: uid(5),
+            kind: "scripture_command",
+            action: "unavailable",
+            content: message,
+            timestamp: Date.now(),
+            confidence: 95,
+            rationale
+        })
     }
 
     /////

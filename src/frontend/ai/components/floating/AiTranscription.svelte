@@ -57,6 +57,7 @@
 
     function matchTypeLabel(suggestion: (typeof suggestions)[number]): string {
         if (suggestion.kind === "hymn") return "Hymn command"
+        if (suggestion.kind === "scripture_command") return "Scripture command"
         if (suggestion.scriptureMatchType === "reference") return "Explicit reference"
         if (suggestion.scriptureMatchType === "content") return "Verse content"
         return "Unclassified"
@@ -128,7 +129,7 @@
                 </div>
 
                 <div class="suggestionMeta">
-                    <span class="match-type" class:inferred={suggestion.kind !== "hymn" && suggestion.scriptureMatchType !== "reference"}>{matchTypeLabel(suggestion)}</span>
+                    <span class="match-type" class:inferred={!suggestion.kind && suggestion.scriptureMatchType !== "reference"}>{matchTypeLabel(suggestion)}</span>
                     {#if suggestion.rationale}
                         <span class="rationale">{suggestion.rationale}</span>
                     {/if}
