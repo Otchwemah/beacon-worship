@@ -99,3 +99,51 @@ export function getHymnCategoryIds(shows: ShowList[], hymnCategoryIds: string[] 
     }
     return [...ids]
 }
+
+/**
+ * Replace the background on every slide of a hymn deck with the operator's saved image.
+ *
+ * FreeShow resolves a slide background in two places:
+ *  - `slide.settings.backgroundImage` — used by the live output (showActions) and the preview.
+ *  - `layoutSlide.background` (a media id) — takes precedence in the Show-panel preview.
+ * To make the saved image win everywhere we set it on every slide AND clear any layout-level
+ * background overrides (including per-child layout overrides). Pure: returns new slides/layouts
+ * objects and never mutates the input. An empty path removes the hymn override from slides but
+ * leaves layout backgrounds untouched.
+ */
+export function applyHymnBackground(show: { slides?: Record<string, any>; layouts?: Record<string, any> }, backgroundPath: string): { slides: Record<string, any>; layouts: Record<string, any> } {
+    const path = (backgroundPath || "").trim()
+
+    const slides: Record<string, any> = {}
+    for (const [id, slide] of Object.entries(show?.slides || {})) {
+        const settings = { ...(slide?.settings || {}) }
+        if (path) settings.backgroundImage = path
+        else delete settings.backgroundImage
+        slides[id] = { ...slide, settings }
+    }
+
+    const layouts: Record<string, any> = {}
+    for (const [id, layout] of Object.entries(show?.layouts || {})) {
+        const layoutSlides = Array.isArray(layout?.slides)
+            ? layout.slides.map((layoutSlide: any) => {
+                  const copy = { ...layoutSlide }
+                  if (path) {
+                      delete copy.background
+                      if (copy.children && typeof copy.children === "object") {
+                          copy.children = Object.fromEntries(
+                              Object.entries(copy.children).map(([childId, child]: [string, any]) => {
+                                  const childCopy = { ...(child || {}) }
+                                  delete childCopy.background
+                                  return [childId, childCopy]
+                              })
+                          )
+                      }
+                  }
+                  return copy
+              })
+            : layout?.slides
+        layouts[id] = { ...layout, slides: layoutSlides }
+    }
+
+    return { slides, layouts }
+}

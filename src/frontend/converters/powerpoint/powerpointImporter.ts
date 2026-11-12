@@ -2,8 +2,9 @@ import { get } from "svelte/store"
 import { uid } from "uid"
 import type { Show, Slide, SlideData } from "../../../types/Show"
 import { ShowObj } from "../../classes/Show"
+import { applyHymnBackground } from "../../components/drawer/hymns/hymns"
 import { checkName } from "../../components/helpers/show"
-import { drawerTabsData } from "../../stores"
+import { drawerTabsData, special } from "../../stores"
 import { translateText } from "../../utils/language"
 import { createCategory, setTempShows } from "../importHelpers"
 import { PowerPointPackage } from "./PowerPointHelper"
@@ -92,6 +93,15 @@ export function convertPowerpoint(files: any[]) {
 
             show.slides = slides
             show.layouts = { [layoutID]: { name: translateText("example.default"), notes: "", slides: layouts } }
+
+            // Beacon Worship: if the operator has saved a hymn background, apply it to the
+            // newly imported deck so every hymn slide uses it from the start.
+            const hymnBackground = get(special).hymnBackgroundImage
+            if (hymnBackground) {
+                const applied = applyHymnBackground(show, hymnBackground)
+                show.slides = applied.slides
+                show.layouts = applied.layouts
+            }
 
             tempShows.push({ id: uid(), show })
         })

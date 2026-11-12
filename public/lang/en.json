@@ -424,7 +424,13 @@
         "click_hint": "Click to select · double-click to go live",
         "empty": "No hymn decks yet",
         "empty_hint": "Import a PowerPoint (.pptx) hymn book to get started. Imported decks appear here automatically.",
-        "import": "Import hymns"
+        "import": "Import hymns",
+        "background": "Background",
+        "background_label": "Hymn background",
+        "background_hint": "Replaces the background on every hymn slide. Also applied to newly imported hymn decks.",
+        "background_saved": "Hymn background saved",
+        "background_applied": "Hymn background applied to all hymns",
+        "background_cleared": "Hymn background cleared"
     },
     "tabs": {
         "shows": "Shows",

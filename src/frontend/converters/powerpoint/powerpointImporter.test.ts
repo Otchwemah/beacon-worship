@@ -27,13 +27,14 @@ const h = vi.hoisted(() => {
         activePopup: makeStore(null),
         alertMessage: makeStore(""),
         drawerTabsData: makeStore({ shows: { activeSubTab: "all" } }),
+        special: makeStore({}),
         tempShows: [] as any[],
         createCategoryCalls: [] as any[],
         uidCounter: 0
     }
 })
 
-vi.mock("../../stores", () => ({ activePopup: h.activePopup, alertMessage: h.alertMessage, drawerTabsData: h.drawerTabsData }))
+vi.mock("../../stores", () => ({ activePopup: h.activePopup, alertMessage: h.alertMessage, drawerTabsData: h.drawerTabsData, special: h.special }))
 vi.mock("uid", () => ({ uid: () => `id-${++h.uidCounter}` }))
 vi.mock("../../classes/Show", () => ({
     ShowObj: class {
@@ -99,6 +100,7 @@ beforeEach(() => {
     h.activePopup._reset(null)
     h.alertMessage._reset("")
     h.drawerTabsData._reset({ shows: { activeSubTab: "all" } })
+    h.special._reset({})
     h.tempShows = []
     h.createCategoryCalls = []
     h.uidCounter = 0
@@ -137,5 +139,22 @@ describe("convertPowerpoint import UI", () => {
         vi.advanceTimersByTime(10)
         expect(h.createCategoryCalls).toHaveLength(0)
         expect(h.tempShows[0].show.category).toBe("phb")
+    })
+
+    it("applies the saved hymn background to every slide of a new import", () => {
+        h.special._reset({ hymnBackgroundImage: "/bg.png" })
+        convertPowerpoint([deck()])
+        vi.advanceTimersByTime(10)
+        const show = h.tempShows[0].show
+        const slides = Object.values(show.slides) as any[]
+        expect(slides.length).toBeGreaterThan(0)
+        expect(slides.every((s) => s.settings.backgroundImage === "/bg.png")).toBe(true)
+    })
+
+    it("leaves slide backgrounds untouched when no hymn background is saved", () => {
+        convertPowerpoint([deck()])
+        vi.advanceTimersByTime(10)
+        const slides = Object.values(h.tempShows[0].show.slides) as any[]
+        expect(slides.every((s) => !s.settings.backgroundImage)).toBe(true)
     })
 })
