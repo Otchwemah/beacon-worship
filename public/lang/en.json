@@ -419,9 +419,18 @@
         "end": "End",
         "change_folder": "Choose another location"
     },
+    "hymns": {
+        "books": "Hymn books",
+        "click_hint": "Click to select · double-click to go live",
+        "empty": "No hymn decks yet",
+        "empty_hint": "Import a PowerPoint (.pptx) hymn book to get started. Imported decks appear here automatically.",
+        "import": "Import hymns"
+    },
     "tabs": {
         "shows": "Shows",
         "shows_info": "A show is made up of slides; it can be a song, presentation, media, scripture, and more.",
+        "hymns": "Hymns",
+        "hymns_info": "Your hymn library. Click a hymn to select it, double-click to send it live.",
         "media": "Media",
         "overlays": "Overlays",
         "audio": "Audio",

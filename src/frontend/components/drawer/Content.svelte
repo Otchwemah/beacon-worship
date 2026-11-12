@@ -5,6 +5,7 @@
     import Audio from "./audio/Audio.svelte"
     import Scripture from "./bible/Scripture.svelte"
     import Calendar from "./calendar/Calendar.svelte"
+    import Hymns from "./hymns/Hymns.svelte"
     import Media from "./media/Media.svelte"
     import Actions from "./pages/Actions.svelte"
     import Interactions from "./pages/Interactions.svelte"
@@ -61,6 +62,8 @@
         <Overlays {active} {searchValue} />
     {:else if id === "templates"}
         <Templates {active} {searchValue} />
+    {:else if id === "hymns"}
+        <Hymns {active} {searchValue} />
     {:else if id === "scripture"}
         <Scripture {active} bind:searchValue />
     {:else if id === "calendar"}

@@ -12,7 +12,11 @@ export const drawerTabs = {
     scripture: { name: "tabs.scripture", icon: "scripture", title: "" },
     calendar: { name: "tabs.calendar", icon: "calendar", title: "" },
 
-    functions: { name: "tabs.functions", icon: "functions", title: "" }
+    functions: { name: "tabs.functions", icon: "functions", title: "" },
+
+    // Beacon Worship: standalone Hymns library. Appended last so existing Ctrl+1..8
+    // drawer shortcuts keep their meaning; Hymns becomes Ctrl+9.
+    hymns: { name: "tabs.hymns", icon: "book", title: "tabs.hymns_info" }
 }
 
 // export const drawerTabs = {
