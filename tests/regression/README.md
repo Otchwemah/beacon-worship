@@ -44,8 +44,29 @@ test-only attributes throughout the UI:
 
 - drawer tabs render `id={tab.id}` via `MaterialButton` → `<button id="hymns">`, `#scripture`, …
 - drawer search input is `input.drawer_search`
-- dropdowns are `.dropdownElem` with `[role="option"]` entries
+- dropdowns: `.dropdownElem` (Dropdown.svelte) **and** `.textfield:has(.dropdown-trigger)`
+  (MaterialDropdown.svelte); both list `[role="option"]` entries
+- Scripture navigation is `.main.scripture` with a `.books` list
 - the audience output toggle is `#output_window_button` and carries an `on`/`off` class
+
+## Traps found by the first real CI runs
+
+These cost a full CI cycle each; keep them in mind when editing the specs:
+
+1. **Two startup windows.** `public/loading.html` opens in its own `BrowserWindow` titled
+   *"Beacon Worship - Loading"*. Matching the window by title alone selects the loading window,
+   which then closes → `Target page, context or browser has been closed`. Skip `loading.html`
+   and require the drawer tab strip instead.
+2. **`span.tabs` is not unique.** The top bar has a similarly-classed strip, so a bare
+   `span.tabs` locator throws a Playwright strict-mode violation. Scope it as
+   `span.tabs:has(#hymns)`.
+3. **The update popup blocks everything.** `checkForUpdates()` sets `activePopup` to
+   `new_update` on a fresh profile, and its `div.popup` overlay intercepts all clicks
+   (`... intercepts pointer events`). Popups are dismissed before each test via
+   `button.popup-close`, falling back to `Escape`.
+4. **Drawer shortcut indices are positional.** Order is shows, media, audio, overlays,
+   templates, scripture, calendar, functions, hymns → Scripture is `Ctrl+6`. The spec derives
+   indices from the rendered tab bar rather than hardcoding them.
 
 ## Runner notes
 
@@ -57,10 +78,19 @@ test-only attributes throughout the UI:
 - The audience-output test skips itself when the runner has no physical output available, and
   restores the previous toggle state so runs stay repeatable.
 
+## Reading a failure without downloading anything
+
+The CI job runs `scripts/testing/regressionDigest.js`, which prints failing spec names and their
+first error lines as plain text into the job log **and the run's Summary page**. A screenshot of
+the Summary is enough to diagnose a failure — no artifact download or unzip required. The full
+HTML report, traces, screenshots and video are still uploaded as `regression-report-<os>`.
+
 ## Status
 
-The specs are listed/compiled-checked, but a full Electron run has **not** been executed in the
-authoring workspace (no display and no browser system libraries there). The first real execution
-happens in the Validation workflow's `regression` job. That job is **advisory
-(`continue-on-error`) until it has a confirmed green run**, after which it should be flipped to
-blocking.
+The specs have now run against real Electron on Windows and macOS in CI, and the selector traps
+above were fixed from those runs. A full Electron run still cannot be executed in the authoring
+workspace (no display, no browser system libraries), so CI remains the source of truth.
+
+The `regression` job is **advisory (`continue-on-error`) until it has a confirmed green run**,
+after which it should be flipped to blocking. Note that an advisory job can fail while the overall
+run still reports success — read the per-job status or the digest, not just the run badge.
