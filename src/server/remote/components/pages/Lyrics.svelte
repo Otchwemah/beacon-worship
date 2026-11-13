@@ -67,7 +67,7 @@
         overflow-x: hidden;
         padding: 10px;
         scroll-behavior: smooth;
-        /* FreeShow UI scrollbar */
+        /* Beacon Worship UI scrollbar */
         scrollbar-width: thin; /* Firefox */
         scrollbar-color: rgb(255 255 255 / 0.3) rgb(255 255 255 / 0.05);
     }

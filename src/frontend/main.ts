@@ -1,4 +1,4 @@
-// ----- FreeShow -----
+// ----- Beacon Worship -----
 // Svelte app entry point
 
 import * as Sentry from "@sentry/electron/renderer"

@@ -1,4 +1,4 @@
-// ----- FreeShow -----
+// ----- Beacon Worship -----
 // Content Provider Helper Functions
 // Handles access and settings for external content providers like Planning Center, ChurchApps (B1), etc.
 

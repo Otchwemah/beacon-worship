@@ -1,4 +1,4 @@
-// ----- FreeShow -----
+// ----- Beacon Worship -----
 // Here are all the global app variables
 
 import type { Bible } from "json-bible/lib/Bible"

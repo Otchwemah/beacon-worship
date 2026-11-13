@@ -1327,7 +1327,7 @@
         opacity: 0.6;
     }
 
-    /* FreeShow UI scrollbar */
+    /* Beacon Worship UI scrollbar */
     .search-scroll,
     .bible {
         scrollbar-width: thin; /* Firefox */

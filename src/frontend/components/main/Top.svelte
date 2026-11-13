@@ -102,8 +102,8 @@
         <!-- logo -->
         <h1 class="brand">Beacon Worship</h1>
         <!-- <div class="logo">
-            <img style="height: 35px;" src="./import-logos/freeshow.webp" alt="FreeShow-logo" draggable={false} />
-            <h1 style="color: var(--text);font-size: 1.7em;">FreeShow</h1>
+            <img style="height: 35px;" src="./import-logos/beacon-worship.png" alt="Beacon Worship logo" draggable={false} />
+            <h1 style="color: var(--text);font-size: 1.7em;">Beacon Worship</h1>
         </div> -->
     </span>
     <span>
@@ -210,7 +210,7 @@
         background-color: var(--red);
     }
 
-    /* Beacon Worship wordmark. "Beacon Worship" is longer than the upstream "FreeShow",
+    /* Beacon Worship wordmark. "Beacon Worship" is longer than the upstream "Beacon Worship",
        so it scales down with the navigation column instead of overflowing it. */
     .brand {
         align-self: center;

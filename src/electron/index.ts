@@ -1,4 +1,4 @@
-// ----- FreeShow -----
+// ----- Beacon Worship -----
 // This is the electron entry point
 
 import type { Rectangle } from "electron"
@@ -68,7 +68,7 @@ config.set("loaded", true)
 if (!config.get("loaded")) console.error("Could not get stored data!")
 
 // info
-console.info("Starting FreeShow...")
+console.info("Starting Beacon Worship...")
 if (!isProd) console.info("Building app! (This may take 5-40 seconds)")
 
 // set application menu

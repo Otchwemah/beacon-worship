@@ -1,4 +1,4 @@
-// ----- FreeShow -----
+// ----- Beacon Worship -----
 // Get all user configs
 // https://www.npmjs.com/package/electron-store
 

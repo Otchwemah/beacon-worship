@@ -262,10 +262,10 @@
         return ""
     }
 
-    // Generate dynamic colors for Bible versions that match FreeShow's theme
+    // Generate dynamic colors for Bible versions that match Beacon Worship's theme
     // Uses HSL to create evenly distributed, vibrant colors on dark background
     const GOLDEN_ANGLE = 137.508
-    const BASE_HUE = 330 // FreeShow's pink
+    const BASE_HUE = 330 // Beacon Worship's pink
 
     function getVersionHue(index: number): number {
         return (BASE_HUE + index * GOLDEN_ANGLE) % 360

@@ -54,8 +54,10 @@
     function downloadLatest() {
         if (!hasUpdate || !latestVersion) return
 
-        const isBeta = latestVersion.includes("-beta")
-        sendMain(Main.URL, isBeta ? "https://github.com/ChurchApps/FreeShow/releases" : "https://freeshow.app/?download")
+        // Beacon Worship builds are produced by this repository's own "Build Installers"
+        // workflow. Sending the operator to the upstream project would hand them a different
+        // application, so both paths point at our releases.
+        sendMain(Main.URL, "https://github.com/Otchwemah/beacon-worship/releases")
     }
 
     onMount(checkUpdates)

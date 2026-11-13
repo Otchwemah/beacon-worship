@@ -87,7 +87,7 @@
             touch-action: manipulation;
         }
 
-        /* Match FreeShow main app scrollbar */
+        /* Match Beacon Worship main app scrollbar */
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;

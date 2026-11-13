@@ -6,7 +6,7 @@ import type { ShowList } from "../../../../types/Show"
  * The Hymns tab is a standalone bottom drawer tab surfacing the operator's hymn decks.
  *
  * Where hymn decks come from: importing a .pptx/.ppt/.key through the PowerPoint importer
- * (converters/powerpoint/powerpointImporter.ts) produces a normal FreeShow show with
+ * (converters/powerpoint/powerpointImporter.ts) produces a normal Beacon Worship show with
  * `origin: "powerpoint"`, filed under a category (default "presentation"). `origin` is part
  * of TrimmedShow, so it is already present in the drawer's show list — identifying hymn
  * decks needs no extra show loading.
@@ -138,7 +138,7 @@ export function toggleHymnCategory(hymnCategoryIds: string[] | null | undefined,
 /**
  * Replace the background on every slide of a hymn deck with the operator's saved image.
  *
- * FreeShow resolves a slide background in two places:
+ * Beacon Worship resolves a slide background in two places:
  *  - `slide.settings.backgroundImage` — used by the live output (showActions) and the preview.
  *  - `layoutSlide.background` (a media id) — takes precedence in the Show-panel preview.
  * To make the saved image win everywhere we set it on every slide AND clear any layout-level

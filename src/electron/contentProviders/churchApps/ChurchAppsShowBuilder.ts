@@ -8,7 +8,7 @@ import type { Media, Show, Slide, SlideData } from "../../../types/Show"
 import type { FeedFile } from "./types"
 
 /**
- * Builds FreeShow Show objects from ChurchApps data.
+ * Builds Beacon Worship Show objects from ChurchApps data.
  */
 export class ChurchAppsShowBuilder {
     private static readonly ITEM_STYLE = "left:50px;top:120px;width:1820px;height:840px;"

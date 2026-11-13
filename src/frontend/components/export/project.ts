@@ -1,4 +1,4 @@
-// ----- FreeShow -----
+// ----- Beacon Worship -----
 // Function for exporting project/shows as a project (.project)
 
 import { get } from "svelte/store"

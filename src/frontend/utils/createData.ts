@@ -419,7 +419,7 @@ function getDefaultOverlays() {
                 style: "top:870px;left:1248px;height:170px;width:630px;",
                 align: "align-items:flex-end;",
                 // Beacon Worship: the default watermark goes on the live output, so it must
-                // carry the Beacon Worship name and brand gold, not the upstream FreeShow pink.
+                // carry the Beacon Worship name and brand gold, not the upstream Beacon Worship pink.
                 lines: [{ align: "text-align: right;", text: [{ value: "Beacon Worship", style: "font-size:50px;font-weight:bold;color:#DBAC64;" }] }]
             }
         ]

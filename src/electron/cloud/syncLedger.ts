@@ -1,4 +1,4 @@
-// ----- FreeShow -----
+// ----- Beacon Worship -----
 // Pure per-item merge ledger for SYNCED_SETTINGS / collections.
 //
 // Extracts merge logic from syncManager to be unit-testable in isolation.

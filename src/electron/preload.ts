@@ -1,4 +1,4 @@
-// ----- FreeShow -----
+// ----- Beacon Worship -----
 // Expose protected methods that allow the renderer process to use the ipcRenderer without exposing the entire object
 
 import type { IpcRendererEvent } from "electron"

@@ -15,10 +15,10 @@
     export let currentChapter: string = ""
     export let currentVerse: string = ""
 
-    // Generate dynamic colors for Bible versions that match FreeShow's theme
+    // Generate dynamic colors for Bible versions that match Beacon Worship's theme
     function getVersionColor(index: number): string {
         const goldenAngle = 137.508
-        const baseHue = 330 // FreeShow's pink
+        const baseHue = 330 // Beacon Worship's pink
         const hue = (baseHue + index * goldenAngle) % 360
         const saturation = 75
         const lightness = 65

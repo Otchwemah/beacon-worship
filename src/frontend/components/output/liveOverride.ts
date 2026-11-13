@@ -9,7 +9,7 @@ export { isLiveOverrideEnabled, shouldOverrideForType } from "./liveOverridePoli
 
 // Beacon Worship — "going live overrides whatever was live".
 //
-// Upstream FreeShow layers content: starting a hymn left the previous scripture slide's
+// Upstream Beacon Worship layers content: starting a hymn left the previous scripture slide's
 // background in place, a media background stacked under the old lyrics, and a stale scene
 // could keep tinting the output. For a worship service the operator wants one thing on
 // screen at a time, so sending content live now clears the previous content first.

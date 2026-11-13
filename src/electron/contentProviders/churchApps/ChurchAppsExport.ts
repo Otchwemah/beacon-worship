@@ -21,7 +21,7 @@ export interface ChurchAppsStartupLoadData {
 }
 
 /**
- * Handles exporting FreeShow songs to ChurchApps.
+ * Handles exporting Beacon Worship songs to ChurchApps.
  * Syncs local songs with ChurchApps by identifying missing songs and sending them in batches.
  */
 export class ChurchAppsExport {
