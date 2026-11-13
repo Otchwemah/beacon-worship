@@ -1,12 +1,21 @@
 import { defineConfig } from "@playwright/test"
 
+// Beacon Worship: repeatable release regression checks (prompt requirement).
+//
+// IMPORTANT: the previous config used testDir "." with testMatch "**/*.test.ts", which also
+// matched the vitest unit suites under src/. Playwright would try to run those as Electron
+// specs and fail. Regression specs now live in their own directory with their own extension
+// so the two runners can never pick up each other's files.
+//
+// Paths are resolved relative to this config file (config/testing/).
 export default defineConfig({
-    testDir: ".",
-    testMatch: "**/*.test.ts",
+    testDir: "../../tests/regression",
+    testMatch: "**/*.regression.ts",
+    outputDir: "../../test-output/artifacts",
 
     // Electron startup is slow, especially on CI.
     timeout: 120_000,
-    expect: { timeout: 10_000 },
+    expect: { timeout: 15_000 },
 
     // Run a single Electron instance to avoid port/store conflicts.
     fullyParallel: false,
@@ -15,12 +24,13 @@ export default defineConfig({
     // Retry only on CI to reduce transient failures.
     retries: process.env.CI ? 2 : 0,
 
-    // HTML report on CI, line reporter locally.
-    reporter: [[process.env.CI ? "html" : "line", { outputFolder: "test-output/playwright-report" }]],
+    // list always, plus an HTML report on CI (uploadable as an artifact)
+    reporter: process.env.CI ? [["list"], ["html", { outputFolder: "../../test-output/playwright-report", open: "never" }]] : [["list"]],
 
     use: {
         // Collect diagnostics for CI failures.
         trace: "on-first-retry",
-        screenshot: "only-on-failure"
+        screenshot: "only-on-failure",
+        video: "retain-on-failure"
     }
 })
