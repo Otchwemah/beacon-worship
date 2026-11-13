@@ -191,12 +191,14 @@ jobs:
                   python-version: "3.11"
 
             - name: Install dependencies
+              id: deps
               run: npm ci
               env:
                   npm_config_msvs_version: ${{ runner.os == 'Windows' && '2022' || '' }}
 
             # The regression specs launch the built app (package.json main -> build/electron).
             - name: Build app
+              id: build
               run: npm run build
               env:
                   NODE_OPTIONS: --max-old-space-size=4096
@@ -216,6 +218,7 @@ jobs:
             # job summary, so the failure can be read from a screenshot of the Summary page
             # without downloading/unzipping the report artifact.
             - name: Regression failure digest
+              id: digest
               if: always()
               shell: bash
               run: node scripts/testing/regressionDigest.js
@@ -232,14 +235,40 @@ jobs:
                   fi
                   echo "regression outcome: ${outcome}"
 
+            # Uploading diagnostics must never fail the gate: in run #8 all 10 specs passed on
+            # both platforms, yet the macOS job went red after the tests, with only one of the
+            # two artifacts uploaded. A report-upload problem is not a product regression.
             - name: Upload regression report
+              id: upload
               if: always()
+              continue-on-error: true
               uses: actions/upload-artifact@v5
               with:
                   name: regression-report-${{ matrix.os }}
                   path: test-output/
                   retention-days: 14
                   if-no-files-found: ignore
+                  overwrite: true
+
+            # Explain a red job from the Summary alone. The Playwright digest only covers spec
+            # results, so a failing install/build/upload step was previously invisible there.
+            - name: Step outcome diagnostics
+              if: always()
+              shell: bash
+              run: |
+                  {
+                    echo "#### Step outcomes (${{ matrix.os }})"
+                    echo ""
+                    echo "| Step | Outcome |"
+                    echo "| --- | --- |"
+                    echo "| Install dependencies | ${{ steps.deps.outcome }} |"
+                    echo "| Build app | ${{ steps.build.outcome }} |"
+                    echo "| Run regression checks | ${{ steps.regression.outcome }} |"
+                    echo "| Failure digest | ${{ steps.digest.outcome }} |"
+                    echo "| Upload report | ${{ steps.upload.outcome }} |"
+                    echo ""
+                    echo "Job status so far: ${{ job.status }}"
+                  } >> "$GITHUB_STEP_SUMMARY"
 
             # Fail the job when the specs failed, so the job badge is truthful. The job-level
             # continue-on-error keeps the overall run green while this gate is advisory.
