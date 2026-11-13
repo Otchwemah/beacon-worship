@@ -34,14 +34,25 @@ const defaultOutput = path.join(projectRoot, "config", "building", "electron-bui
 function makeUnsigned(config) {
     const out = JSON.parse(JSON.stringify(config))
 
-    // macOS: no notarization hook, no signing identity, no hardened runtime.
+    // macOS: ad-hoc sign instead of skipping signing outright.
+    //
+    // electron-builder's macOptions docs are explicit:
+    //   identity null -> "skip signing entirely"
+    //   identity "-"  -> "opt in to ad-hoc signing explicitly"
+    // Skipping signing leaves the modified Electron frameworks with invalidated signatures,
+    // which Apple Silicon macOS reports as '"Beacon Worship" is damaged and can't be opened'.
+    // Ad-hoc signing produces a valid (though not Apple-notarized) signature, so the app opens
+    // after the usual right-click -> Open, without the "damaged" error.
+    //
+    // hardenedRuntime MUST be false with ad-hoc signing, otherwise library validation rejects
+    // the pre-signed Electron frameworks that carry a different Team ID.
     delete out.afterSign
     if (out.mac) {
-        out.mac.identity = null
+        out.mac.identity = "-"
         out.mac.notarize = false
         out.mac.hardenedRuntime = false
         out.mac.gatekeeperAssess = false
-        // entitlements are only meaningful for a signed build
+        // entitlements are only meaningful for a real signed + notarized build
         delete out.mac.entitlements
         delete out.mac.entitlementsInherit
     }

@@ -132,13 +132,18 @@ jobs:
                     echo ""
                     echo "Download **BeaconWorship-macOS-${{ inputs.mac_arch }}-${{ inputs.mac_format }}** from the Artifacts section of this run, unzip it, and open the \`.${{ inputs.mac_format }}\`."
                     echo ""
-                    echo "**This build is unsigned**, so macOS will say it cannot be opened."
-                    echo "Drag Beacon Worship to Applications, then **right-click it → Open → Open**."
-                    echo "If macOS still refuses, run:"
+                    echo "This build is **ad-hoc signed, not Apple-notarized**. Drag Beacon Worship to"
+                    echo "Applications, then **right-click it → Open → Open** (a plain double-click is blocked)."
+                    echo ""
+                    echo "If macOS says the app **\"is damaged\"**, paste these two lines into Terminal:"
                     echo ""
                     echo '```bash'
                     echo 'xattr -dr com.apple.quarantine "/Applications/Beacon Worship.app"'
+                    echo 'codesign --force --deep --sign - "/Applications/Beacon Worship.app"'
                     echo '```'
+                    echo ""
+                    echo "Then open it normally. (The 'damaged' wording is macOS reacting to an invalid"
+                    echo "signature, not actual corruption.)"
                     echo ""
                     echo "arm64 = Apple Silicon (M1/M2/M3/M4). x64 = Intel."
                     echo ""
