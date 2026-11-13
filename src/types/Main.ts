@@ -169,6 +169,12 @@ export interface MediaOptions {
     view?: "all" | "image" | "video" | "folder"
 }
 
+// Beacon Worship: Hymns drawer layout. Grid by default, with an operator-adjustable size.
+export interface HymnOptions {
+    columns: number
+    mode: "grid" | "list"
+}
+
 export interface ActiveEdit {
     // id?: string
     type?: "show" | "media" | "camera" | "overlay" | "template" | "effect" | "audio" | "scene"

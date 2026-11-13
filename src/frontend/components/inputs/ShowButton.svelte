@@ -11,9 +11,10 @@
     import { encodeFilePath, getExtension, getFileName, getMedia, getMediaLayerType, getMediaStyle, getMediaType, getVideoDuration, mediaSize, removeExtension } from "../helpers/media"
     import { findMatchingOut, getActiveOutputs, setOutput, startFolderTimer } from "../helpers/output"
     import { loadShows } from "../helpers/setShow"
-    import { checkName, getLayoutRef } from "../helpers/show"
+    import { checkName } from "../helpers/show"
     import { swichProjectItem, updateOut } from "../helpers/showActions"
     import { prepareLiveOverride, shouldOverrideForType } from "../output/liveOverride"
+    import { presentDeck } from "../drawer/hymns/presentDeck"
     import T from "../helpers/T.svelte"
     import { joinTime, secondsToTime } from "../helpers/time"
     import { clearBackground, clearSlide } from "../output/clear"
@@ -160,17 +161,9 @@
         const overrideLive = !e.detail.alt && shouldOverrideForType(type)
 
         if (type === "show" && $showsCache[id]?.settings && $showsCache[id].layouts[$showsCache[id].settings.activeLayout]?.slides?.length) {
-            let layoutRef = getLayoutRef()
-            let firstEnabledIndex = layoutRef.findIndex((a) => !a.data.disabled)
-
-            // already live at this exact slide: no-op, and crucially do NOT clear first
-            let slide = currentOutput.out?.slide || null
-            if (slide?.id === id && slide?.index === firstEnabledIndex && slide?.layout === $showsCache[id].settings.activeLayout) return
-
-            if (overrideLive) prepareLiveOverride()
-
-            updateOut("active", firstEnabledIndex, layoutRef, !e.detail.alt)
-            setOutput("slide", { id, layout: $showsCache[id].settings.activeLayout, index: firstEnabledIndex })
+            // Shared with the Hymns grid tiles so list and grid cannot drift on the
+            // live-override policy or the already-live guard.
+            presentDeck(id, !e.detail.alt)
         } else if (type === "image" || type === "video") {
             let outputStyle = $styles[currentOutput.style || ""]
             const mediaData = $media[id] || {}

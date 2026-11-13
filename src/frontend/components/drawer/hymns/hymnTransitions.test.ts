@@ -36,7 +36,7 @@ describe("repairHymnTransitions", () => {
         const result = repairHymnTransitions(show)
 
         expect(result.changed).toBe(1)
-        expect(result.layouts.l1.slides[0].transition).toBeUndefined()
+        expect(result.layouts.l1.slides![0].transition).toBeUndefined()
     })
 
     it("also repairs per-child layout overrides", () => {
@@ -48,7 +48,7 @@ describe("repairHymnTransitions", () => {
             }
         }
         const result = repairHymnTransitions(show)
-        const parent = result.layouts.l1.slides[0]
+        const parent = result.layouts.l1.slides![0]
 
         expect(parent.transition).toBeUndefined()
         expect(parent.children.c1.transition).toBeUndefined()
@@ -60,7 +60,7 @@ describe("repairHymnTransitions", () => {
         const result = repairHymnTransitions(show)
 
         expect(result.changed).toBe(0)
-        expect(result.layouts.l1.slides[0].transition).toEqual({ type: "fade", duration: 800, easing: "ease-in" })
+        expect(result.layouts.l1.slides![0].transition).toEqual({ type: "fade", duration: 800, easing: "ease-in" })
     })
 
     it("never mutates the input", () => {
@@ -76,8 +76,8 @@ describe("repairHymnTransitions", () => {
 
         expect(result.layouts.l1.name).toBe("Default")
         expect(result.layouts.l1.notes).toBe("keep")
-        expect(result.layouts.l1.slides[0].background).toBe("/img.png")
-        expect(result.layouts.l1.slides[0].disabled).toBe(true)
+        expect(result.layouts.l1.slides![0].background).toBe("/img.png")
+        expect(result.layouts.l1.slides![0].disabled).toBe(true)
     })
 
     it("counts every repaired slide", () => {

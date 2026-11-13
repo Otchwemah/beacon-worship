@@ -446,7 +446,13 @@
         "folder_empty": "No PowerPoint files found in that folder",
         "folder_truncated": "Folder has more than 2000 decks — imported the first 2000",
         "count_hint": "Hymns shown / total in this hymn book",
-        "transitions_repaired": "Hymn slide transitions restored"
+        "transitions_repaired": "Hymn slide transitions restored",
+        "folders": "Folders",
+        "remove_folder_and_hymns": "Remove folder and its hymns",
+        "remove_folder_confirm": "Remove this hymn folder?",
+        "remove_folder_count": "hymns will also be deleted from the library. You can undo this.",
+        "view_grid": "Grid view",
+        "view_list": "List view"
     },
     "tabs": {
         "shows": "Shows",

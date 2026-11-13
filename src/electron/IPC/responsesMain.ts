@@ -325,7 +325,7 @@ export async function startImportFolder(data: { channel: string; extensions: str
     if (result.truncated) sendToMain(ToMain.TOAST, "hymns.folder_truncated")
 
     const categoryName = data.useFolderNameAsCategory === false ? undefined : categoryNameFromFolder(folder)
-    await importShow(data.channel, result.files, { categoryName })
+    await importShow(data.channel, result.files, { categoryName, folderPath: folder })
 }
 
 // BIBLE

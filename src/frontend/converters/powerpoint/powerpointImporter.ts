@@ -3,8 +3,9 @@ import { uid } from "uid"
 import type { Show, Slide, SlideData } from "../../../types/Show"
 import { ShowObj } from "../../classes/Show"
 import { applyHymnBackground, toggleHymnCategory } from "../../components/drawer/hymns/hymns"
+import { createFolderEntry, findFolderByPath } from "../../components/drawer/hymns/hymnFolders"
 import { checkName } from "../../components/helpers/show"
-import { categories, drawerTabsData, special } from "../../stores"
+import { categories, drawerTabsData, hymnFolders, special } from "../../stores"
 import { translateText } from "../../utils/language"
 import { createCategory, setTempShows } from "../importHelpers"
 import { PowerPointPackage } from "./PowerPointHelper"
@@ -26,11 +27,39 @@ function createHymnBookCategory(name: string): string {
     return id
 }
 
+// Beacon Worship: register the picked system folder in the Hymns LEFT panel, the same way
+// the Media tab keeps its folders. It persists until the operator removes it, and remembers
+// which category its decks were imported into so selecting it can filter the grid.
+function registerHymnFolder(folderPath: string, name: string, categoryId: string) {
+    if (!folderPath || !categoryId) return
+
+    const existingId = findFolderByPath(get(hymnFolders), folderPath)
+    if (existingId) {
+        // re-loading the same folder refreshes the link instead of duplicating the row
+        hymnFolders.update((a) => {
+            if (a[existingId]) a[existingId].categoryId = categoryId
+            return a
+        })
+        return
+    }
+
+    const id = uid()
+    hymnFolders.update((a) => {
+        a[id] = createFolderEntry(id, name, folderPath, categoryId)
+        return a
+    })
+    // select the folder that was just loaded
+    drawerTabsData.update((a) => {
+        if (a.hymns) a.hymns.activeSubTab = id
+        return a
+    })
+}
+
 // missing shapes/tables/graphs
 // item/line background, some text color incorrect
 // extract embedded videos/audio
 
-export function convertPowerpoint(files: any[], options: { categoryName?: string } = {}) {
+export function convertPowerpoint(files: any[], options: { categoryName?: string; folderPath?: string } = {}) {
     // Beacon Worship: hymn/PPT imports must not raise the blocking "Importing..." alert.
     // The import dialog already closes itself; setTempShows() still emits the normal
     // finished toast when conversion completes.
@@ -40,6 +69,7 @@ export function convertPowerpoint(files: any[], options: { categoryName?: string
     let categoryId = ""
     if (options.categoryName) {
         categoryId = createHymnBookCategory(options.categoryName)
+        if (options.folderPath) registerHymnFolder(options.folderPath, options.categoryName, categoryId)
     } else {
         categoryId = get(drawerTabsData).shows?.activeSubTab || ""
         if (categoryId === "all" || categoryId === "unlabeled") categoryId = createCategory("presentation", "presentation", { isDefault: true })

@@ -2,7 +2,7 @@
     import { Main } from "../../../../types/IPC/Main"
     import type { ShowList } from "../../../../types/Show"
     import { sendMain } from "../../../IPC/main"
-    import { activePopup, activeProfile, activeShow, categories, drawer, focusedArea, hymnSearchValue, sortedShowsList, special } from "../../../stores"
+    import { activePopup, activeProfile, activeShow, categories, drawer, focusedArea, hymnFolders, hymnOptions, hymnSearchValue, sortedShowsList, special } from "../../../stores"
     import { getAccess } from "../../../utils/profile"
     import T from "../../helpers/T.svelte"
     import Icon from "../../helpers/Icon.svelte"
@@ -15,18 +15,17 @@
     import SelectElem from "../../system/SelectElem.svelte"
     import VirtualList from "../VirtualList.svelte"
     import { filterHymnDecks, getHymnNumber, searchHymnDecks, sortHymnDecks } from "./hymns"
+    import { filterDecksByFolder } from "./hymnFolders"
+    import HymnCard from "./HymnCard.svelte"
     import HymnsToolbar from "./HymnsToolbar.svelte"
 
     // Beacon Worship — standalone Hymns library.
-    // Single-click selects the deck in the Show panel only; double-click selects AND
-    // sends it live. Both behaviours come from ShowButton, which the Shows drawer also
-    // uses, so hymns behave exactly like the rest of the app (no separate live path).
+    // Single-click selects the deck in the Show panel only; double-click selects AND sends it
+    // live. Grid tiles and list rows share presentDeck() so the two views cannot drift.
+    // The left panel holds persistent system folders; the selection here filters the grid.
 
     export let active: string | null = null
 
-    // dedicated Hymns search bar (in the Hymns navigation), mirrored by the top drawer search
-    // while this tab is active. Number matching applies only
-    // when the query is numeric; otherwise it matches deck names. See searchHymnDecks().
     $: query = ($hymnSearchValue || "").trim()
     $: isSearching = query.length > 0
     $: category = active || "all"
@@ -34,7 +33,6 @@
     $: profile = $activeProfile ? getAccess("shows") : {}
     $: readOnly = profile.global === "read"
 
-    // categories the operator has designated as hymn books (in addition to PPT imports)
     $: hymnCategoryIds = $special.hymnCategoryIds || []
     $: archivedCategoryIds = Object.entries($categories)
         .filter(([, c]) => c?.isArchive)
@@ -43,14 +41,27 @@
         .filter(([, level]) => level === "none")
         .map(([id]) => id)
 
-    $: hymnDecks = sortHymnDecks(
+    $: allHymnDecks = sortHymnDecks(
         filterHymnDecks($sortedShowsList, {
-            category,
+            category: "all",
             hymnCategoryIds,
             archivedCategoryIds,
             hiddenCategoryIds
         })
     )
+
+    // left-panel selection: a loaded system folder, a hymn-book category, or everything
+    $: isFolderSelection = !!(category && $hymnFolders[category])
+    $: hymnDecks = isFolderSelection
+        ? filterDecksByFolder(allHymnDecks, category, $hymnFolders)
+        : sortHymnDecks(
+              filterHymnDecks($sortedShowsList, {
+                  category,
+                  hymnCategoryIds,
+                  archivedCategoryIds,
+                  hiddenCategoryIds
+              })
+          )
 
     // don't recompute the whole list while the drawer is closed (same guard as Shows)
     $: drawerIsClosed = $drawer.height <= 40
@@ -67,6 +78,7 @@
     }
     function update() {
         shouldUpdate = false
+        // search runs within the current folder selection, or across all folders on "All"
         filtered = searchHymnDecks(hymnDecks, query)
     }
 
@@ -83,41 +95,68 @@
     function loadFolder() {
         sendMain(Main.IMPORT_FOLDER, { channel: "powerpoint", extensions: ["pptx", "ppt"], useFolderNameAsCategory: true, recursive: true })
     }
+
+    $: mode = $hymnOptions.mode || "grid"
+    $: columns = Math.max(1, Math.min(12, $hymnOptions.columns || 4))
 </script>
 
-<!-- Beacon Worship: the search bar sits above the list it filters, not in the left column. -->
 <div class="hymns-panel">
-    <HymnsToolbar {readOnly} count={filtered.length} total={hymnDecks.length} />
+    <HymnsToolbar count={filtered.length} total={hymnDecks.length} />
 
-    <Autoscroll style="overflow-y: auto;flex: 1;">
-    <div class="column {readOnly ? '' : 'context #drawer_show'}" on:mouseup={() => focusedArea.set("show_drawer")}>
-        {#if filtered.length}
-            <div class="hint">
-                <Icon id="info" size={0.85} />
-                <span><T id="hymns.click_hint" /></span>
+    {#if mode === "grid"}
+        <Autoscroll style="overflow-y: auto;flex: 1;">
+            <div class="grid-wrap {readOnly ? '' : 'context #drawer_show'}" on:mouseup={() => focusedArea.set("show_drawer")}>
+                {#if filtered.length}
+                    <div class="hymn-grid" style="grid-template-columns: repeat({columns}, minmax(0, 1fr));">
+                        {#each filtered as show (show.id)}
+                            <HymnCard {show} selected={$activeShow?.id === show.id} />
+                        {/each}
+                    </div>
+                {:else if isSearching}
+                    <Center size={1.2} faded><T id="empty.search" /></Center>
+                {:else}
+                    <Center size={1.1} faded>
+                        <Icon id="book" size={2} />
+                        <p style="margin-top: 10px;"><T id="hymns.empty" /></p>
+                        <p class="sub"><T id="hymns.empty_hint" /></p>
+                        <MaterialButton icon="folder" title="hymns.load_folder_hint" disabled={readOnly} on:click={loadFolder} style="margin-top: 16px;" white>
+                            <T id="hymns.load_folder" />
+                        </MaterialButton>
+                    </Center>
+                {/if}
             </div>
+        </Autoscroll>
+    {:else}
+        <Autoscroll style="overflow-y: auto;flex: 1;">
+            <div class="column {readOnly ? '' : 'context #drawer_show'}" on:mouseup={() => focusedArea.set("show_drawer")}>
+                {#if filtered.length}
+                    <div class="hint">
+                        <Icon id="info" size={0.85} />
+                        <span><T id="hymns.click_hint" /></span>
+                    </div>
 
-            {#key category}
-                <VirtualList items={filtered} let:item={show} activeIndex={filtered.findIndex((a) => a.id === $activeShow?.id)}>
-                    <SelectElem id="show_drawer" data={{ id: show.id }} shiftRange={filtered} draggable>
-                        <ShowButton id={show.id} {show} data={label(show)} class="#drawer_show_button" match={null} searchValue={query} icon />
-                    </SelectElem>
-                </VirtualList>
-            {/key}
-        {:else if isSearching}
-            <Center size={1.2} faded><T id="empty.search" /></Center>
-        {:else}
-            <Center size={1.1} faded>
-                <Icon id="book" size={2} />
-                <p style="margin-top: 10px;"><T id="hymns.empty" /></p>
-                <p class="sub"><T id="hymns.empty_hint" /></p>
-                <MaterialButton icon="folder" title="hymns.load_folder_hint" disabled={readOnly} on:click={loadFolder} style="margin-top: 16px;" white>
-                    <T id="hymns.load_folder" />
-                </MaterialButton>
-            </Center>
-        {/if}
-    </div>
-</Autoscroll>
+                    {#key category}
+                        <VirtualList items={filtered} let:item={show} activeIndex={filtered.findIndex((a) => a.id === $activeShow?.id)}>
+                            <SelectElem id="show_drawer" data={{ id: show.id }} shiftRange={filtered} draggable>
+                                <ShowButton id={show.id} {show} data={label(show)} class="#drawer_show_button" match={null} searchValue={query} icon />
+                            </SelectElem>
+                        </VirtualList>
+                    {/key}
+                {:else if isSearching}
+                    <Center size={1.2} faded><T id="empty.search" /></Center>
+                {:else}
+                    <Center size={1.1} faded>
+                        <Icon id="book" size={2} />
+                        <p style="margin-top: 10px;"><T id="hymns.empty" /></p>
+                        <p class="sub"><T id="hymns.empty_hint" /></p>
+                        <MaterialButton icon="folder" title="hymns.load_folder_hint" disabled={readOnly} on:click={loadFolder} style="margin-top: 16px;" white>
+                            <T id="hymns.load_folder" />
+                        </MaterialButton>
+                    </Center>
+                {/if}
+            </div>
+        </Autoscroll>
+    {/if}
 
     {#if !filtered.length && !isSearching}
         <FloatingInputs onlyOne gradient>
@@ -135,6 +174,19 @@
         height: 100%;
         min-height: 0;
         position: relative;
+    }
+
+    .grid-wrap {
+        background-color: var(--primary-darker);
+        min-height: 100%;
+        padding: 10px;
+        padding-bottom: 60px;
+    }
+
+    .hymn-grid {
+        display: grid;
+        gap: 10px;
+        align-items: start;
     }
 
     .column {

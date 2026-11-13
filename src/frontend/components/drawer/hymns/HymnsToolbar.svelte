@@ -1,27 +1,21 @@
 <script lang="ts">
-    import { Main } from "../../../../types/IPC/Main"
-    import { sendMain } from "../../../IPC/main"
-    import { hymnSearchValue } from "../../../stores"
+    import { hymnOptions, hymnSearchValue } from "../../../stores"
     import { translateText } from "../../../utils/language"
     import Icon from "../../helpers/Icon.svelte"
+    import MaterialZoom from "../../inputs/MaterialZoom.svelte"
 
-    // Beacon Worship — Hymns toolbar, sitting directly above the hymn list.
-    // Previously the search box lived in the left navigation column, which put it beside
-    // the results instead of above them. It now spans the list it filters.
+    // Beacon Worship — Hymns toolbar, directly above the grid it filters.
+    // "Load folder" lives in the LEFT panel (like the Media tab); this bar only searches,
+    // switches grid/list, and adjusts the tile size.
 
-    export let readOnly = false
     export let count = 0
     export let total = 0
 
     let searchElem: HTMLInputElement | null = null
 
     $: isSearching = Boolean(($hymnSearchValue || "").trim().length)
-
-    function loadFolder() {
-        // Scans the chosen folder (recursively) for .pptx/.ppt and imports every deck into a
-        // hymn-book category named after the folder. Handled in the main process.
-        sendMain(Main.IMPORT_FOLDER, { channel: "powerpoint", extensions: ["pptx", "ppt"], useFolderNameAsCategory: true, recursive: true })
-    }
+    $: mode = $hymnOptions.mode || "grid"
+    $: columns = $hymnOptions.columns || 4
 
     function clearSearch() {
         hymnSearchValue.set("")
@@ -33,6 +27,15 @@
             e.stopPropagation()
             clearSearch()
         }
+    }
+
+    function setMode(next: "grid" | "list") {
+        hymnOptions.update((a) => ({ ...a, mode: next }))
+    }
+
+    function setColumns(e: any) {
+        const value = Math.max(1, Math.min(12, Math.round(e.detail)))
+        hymnOptions.update((a) => ({ ...a, columns: value }))
     }
 </script>
 
@@ -47,18 +50,24 @@
         {/if}
     </div>
 
-    <button class="load-folder" title={translateText("hymns.load_folder_hint")} disabled={readOnly} on:click={loadFolder}>
-        <Icon id="folder" size={1.1} />
-        <span>{translateText("hymns.load_folder")}</span>
-    </button>
-
     <span class="count" title={translateText("hymns.count_hint")}>
-        {#if isSearching}
-            {count} / {total}
-        {:else}
-            {total}
-        {/if}
+        {#if isSearching}{count} / {total}{:else}{total}{/if}
     </span>
+
+    <div class="view-toggle">
+        <button class="view-btn" class:on={mode === "grid"} title={translateText("hymns.view_grid")} on:click={() => setMode("grid")}>
+            <Icon id="grid" size={1.1} white={mode === "grid"} />
+        </button>
+        <button class="view-btn" class:on={mode === "list"} title={translateText("hymns.view_list")} on:click={() => setMode("list")}>
+            <Icon id="list" size={1.1} white={mode === "list"} />
+        </button>
+    </div>
+
+    {#if mode === "grid"}
+        <div class="zoom" style="--size: 34px;">
+            <MaterialZoom {columns} defaultValue={4} min={1} max={12} on:change={setColumns} />
+        </div>
+    {/if}
 </div>
 
 <style>
@@ -116,28 +125,6 @@
         opacity: 1;
     }
 
-    .load-folder {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        white-space: nowrap;
-        padding: 6px 12px;
-        font-size: 0.9em;
-        color: var(--text);
-        background-color: var(--primary-lighter);
-        border: 1px solid var(--primary-lighter);
-        border-radius: 8px;
-        cursor: pointer;
-    }
-    .load-folder:hover:enabled {
-        background-color: var(--hover);
-        border-color: var(--secondary);
-    }
-    .load-folder:disabled {
-        opacity: 0.4;
-        cursor: not-allowed;
-    }
-
     .count {
         font-size: 0.8em;
         opacity: 0.6;
@@ -147,10 +134,38 @@
         font-variant-numeric: tabular-nums;
     }
 
-    /* narrow drawer: drop the button label, keep the icon */
-    @media screen and (max-width: 900px) {
-        .load-folder span {
-            display: none;
-        }
+    .view-toggle {
+        display: flex;
+        border: 1px solid var(--primary-lighter);
+        border-radius: 8px;
+        overflow: hidden;
+        flex-shrink: 0;
+    }
+
+    .view-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 5px 8px;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        color: var(--text);
+        opacity: 0.6;
+    }
+    .view-btn:hover {
+        background-color: var(--hover);
+        opacity: 1;
+    }
+    .view-btn.on {
+        background-color: var(--primary-lighter);
+        opacity: 1;
+    }
+
+    .zoom {
+        display: flex;
+        align-items: center;
+        height: 30px;
+        flex-shrink: 0;
     }
 </style>

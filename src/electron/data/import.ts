@@ -93,7 +93,7 @@ const specialImports = {
     }
 }
 
-export async function importShow(id: string, files: string[] | null, options: { categoryName?: string } = {}) {
+export async function importShow(id: string, files: string[] | null, options: { categoryName?: string; folderPath?: string } = {}) {
     if (!files?.length) return
 
     let importId = id
@@ -151,7 +151,7 @@ export async function importShow(id: string, files: string[] | null, options: { 
 
     // categoryName is only set by the Hymns "Load folder" flow; it makes the imported decks
     // land in a hymn-book category named after the folder instead of the active Shows category.
-    sendToMain(ToMain.IMPORT2, { channel: id, data, ...(options.categoryName ? { categoryName: options.categoryName } : {}) })
+    sendToMain(ToMain.IMPORT2, { channel: id, data, ...(options.categoryName ? { categoryName: options.categoryName } : {}), ...(options.folderPath ? { folderPath: options.folderPath } : {}) })
 }
 
 async function readFile(filePath: string, encoding: BufferEncoding = "utf8", id?: string) {

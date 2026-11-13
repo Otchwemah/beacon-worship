@@ -8,6 +8,9 @@ export interface Category {
     icon?: null | string
     path?: string
     id?: string
+    // Beacon Worship: hymn folders link the picked system folder to the shows category
+    // its decks were imported into.
+    categoryId?: string
     type?: "youtube" | "vimeo"
     mediaType?: "background" | "foreground"
     url?: string

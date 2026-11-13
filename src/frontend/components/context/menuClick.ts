@@ -79,6 +79,8 @@ import {
     showsCache,
     slidesOptions,
     sorted,
+    sortedShowsList,
+    hymnFolders,
     special,
     stageShows,
     styles,
@@ -93,6 +95,8 @@ import { escapeRegExp, hideDisplay, isOutputWindow, newToast, triggerFunction, w
 import { setExampleEffects, setExampleOverlays, setExampleTemplates } from "../../utils/createData"
 import { translateText } from "../../utils/language"
 import { confirmCustom } from "../../utils/popup"
+import { filterHymnDecks } from "../drawer/hymns/hymns"
+import { removeFolder } from "../drawer/hymns/hymnFolders"
 import { send } from "../../utils/request"
 import { initializeClosing, save } from "../../utils/save"
 import { updateThemeValues } from "../../utils/updateSettings"
@@ -410,6 +414,7 @@ const clickActions = {
         console.error("COULD NOT DELETE", obj)
     },
     delete_remove: (obj: ObjData) => clickActions.delete(obj),
+    hymns_remove_with_decks: (obj: ObjData) => removeHymnFolderWithDecks(obj),
     delete_all: (obj: ObjData) => {
         if (obj.contextElem?.classList.value.includes("#event")) {
             const group = get(events)[obj.contextElem.id].group
@@ -2505,4 +2510,32 @@ function sort(obj: ObjData, id: string) {
     })
 
     if (id === "shows") updateShowsList(get(shows))
+}
+
+// BEACON WORSHIP — HYMN FOLDERS
+
+/**
+ * Remove a loaded hymn folder AND the hymn decks imported from it.
+ *
+ * The plain "Remove" action (delete_remove) only drops the panel entry and keeps the decks,
+ * matching the Media tab. This one is destructive, so it confirms first and reports the
+ * exact number of hymns that will go. Both paths go through history, so they are undoable.
+ */
+async function removeHymnFolderWithDecks(obj: ObjData) {
+    const folderId = obj.contextElem?.id || (obj.sel?.data?.[0] as string) || ""
+    if (!folderId) return
+
+    const folders = get(hymnFolders)
+    const folder = folders[folderId]
+    if (!folder) return
+
+    const decks = filterHymnDecks(get(sortedShowsList), { category: "all", hymnCategoryIds: get(special).hymnCategoryIds || [] })
+    const { deckIds } = removeFolder(folders, folderId, decks, true)
+
+    const prompt = deckIds.length ? `${translateText("hymns.remove_folder_confirm")}<br><br><b>${folder.name}</b><br>${deckIds.length} ${translateText("hymns.remove_folder_count")}` : `${translateText("hymns.remove_folder_confirm")}<br><br><b>${folder.name}</b>`
+    if (!(await confirmCustom(prompt))) return
+
+    if (deckIds.length) deleteAction({ id: "show_drawer", data: deckIds.map((id) => ({ id })) })
+
+    deleteAction({ id: "category_hymns", data: [folderId] })
 }

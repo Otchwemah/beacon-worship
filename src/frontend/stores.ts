@@ -13,7 +13,7 @@ import type { Event } from "../types/Calendar"
 import type { Draw, DrawLine, DrawSettings, DrawTools } from "../types/Draw"
 import type { Effects } from "../types/Effects"
 import type { History, HistoryNew } from "../types/History"
-import type { ActiveEdit, Clipboard, Interaction, Media, MediaOptions, NumberObject, OS, Popups, Profiles, Selected, SlidesOptions, Variable } from "../types/Main"
+import type { ActiveEdit, Clipboard, HymnOptions, Interaction, Media, MediaOptions, NumberObject, OS, Popups, Profiles, Selected, SlidesOptions, Variable } from "../types/Main"
 import type { Folders, Projects, ShowRef } from "../types/Projects"
 import type { Dictionary, Styles, Themes } from "../types/Settings"
 import type { Action, CustomFont, Emitter, ID, Overlays, Scene, ShowGroups, ShowList, Shows, ShowType, SlideTimer, Tag, Templates, Timer, Transition, TrimmedShows } from "../types/Show"
@@ -162,6 +162,10 @@ export const exportOptions: Writable<any> = writable({ pdf: { rows: 5, columns: 
 export const sortedShowsList: Writable<ShowList[]> = writable([])
 // Beacon Worship: dedicated Hymns search query (number-aware), transient UI state
 export const hymnSearchValue: Writable<string> = writable("")
+// Beacon Worship: system folders the operator has loaded into the Hymns tab. Persisted, and
+// they stay in the left panel until the operator removes them (same model as mediaFolders).
+export const hymnFolders: Writable<Categories> = writable({}) // {default}
+export const hymnOptions: Writable<HymnOptions> = writable({ columns: 4, mode: "grid" }) // {default}
 export const cachedShowsData: Writable<any> = writable({})
 export const quickTextCache: Writable<{ name: string; text: string; fromSearch?: boolean }> = writable({ name: "", text: "" })
 export const loadedMediaThumbnails: Writable<{ [key: string]: string }> = writable({})
@@ -475,6 +479,7 @@ export const $ = {
     scenes,
     media,
     mediaFolders,
+    hymnFolders,
     effects,
     overlayCategories,
     overlays,
@@ -491,6 +496,7 @@ export const $ = {
     drawerTabsData,
     drawer,
     mediaOptions,
+    hymnOptions,
     resized,
     special,
     language,

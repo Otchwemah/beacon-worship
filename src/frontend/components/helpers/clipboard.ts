@@ -870,6 +870,7 @@ const deleteActions = {
     stage: (data: any) => historyDelete("UPDATE", data, { updater: "stage" }),
     category_shows: (data: any) => historyDelete("UPDATE", data, { updater: "category_shows" }),
     category_media: (data: any) => historyDelete("UPDATE", data, { updater: "category_media" }),
+    category_hymns: (data: any) => historyDelete("UPDATE", data, { updater: "category_hymns" }),
     category_audio: (data: any) => {
         if (get(audioPlaylists)[data[0]]) historyDelete("UPDATE", data, { updater: "audio_playlists" })
         else historyDelete("UPDATE", data, { updater: "category_audio" })

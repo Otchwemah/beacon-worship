@@ -1,7 +1,7 @@
 <script lang="ts">
     import { createEventDispatcher } from "svelte"
     import type { SelectIds } from "../../../types/Main"
-    import { actions, activeActionTagFilter, activeDrawerTab, activePlaylist, activeVariableTagFilter, activeTimerTagFilter, audioPlaylists, drawerTabsData, outputs, templates } from "../../stores"
+    import { actions, activeActionTagFilter, activeDrawerTab, activePlaylist, activeVariableTagFilter, activeTimerTagFilter, audioPlaylists, drawerTabsData, hymnFolders, outputs, templates } from "../../stores"
     import { translateText } from "../../utils/language"
     import { customIconsColors } from "../../values/customIcons"
     import { getActionIcon } from "../actions/actions"
@@ -67,10 +67,13 @@
     }
 
     const defaultFolders = ["all", "unlabeled", "number", "favourites", "effects_library", "effects", "online", "inputs", "metronome"]
-    const tabsWithCategories = ["shows", "media", "audio", "overlays", "templates", "scripture"]
+    const tabsWithCategories = ["shows", "media", "audio", "overlays", "templates", "scripture", "hymns"]
 
     $: noEdit = !tabsWithCategories.includes(drawerId) || defaultFolders.includes(id)
-    $: className = noEdit ? "" : $audioPlaylists[id] ? "context #playlist" : `context #category_${drawerId}_button${readOnly ? "_readonly" : ""}`
+    // Beacon Worship: the Hymns panel lists both loaded system folders and hymn-book
+    // categories. Folders get a remove/open-in-system menu; categories keep the shows menu.
+    $: isHymnFolder = drawerId === "hymns" && !!$hymnFolders[id]
+    $: className = noEdit ? "" : $audioPlaylists[id] ? "context #playlist" : isHymnFolder ? `context #category_hymns_folder_button${readOnly ? "_readonly" : ""}` : drawerId === "hymns" ? `context #category_shows_button${readOnly ? "_readonly" : ""}` : `context #category_${drawerId}_button${readOnly ? "_readonly" : ""}`
 
     // drag and drop audio playlists
     $: draggable = !!(drawerId === "audio" && $audioPlaylists[id])
