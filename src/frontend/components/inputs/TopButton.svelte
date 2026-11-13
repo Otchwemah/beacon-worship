@@ -44,7 +44,8 @@
 
 <!-- border-top-left-radius: 12px;border-top-right-radius: 12px; -->
 <MaterialButton style="border-radius: 0;border-bottom: 2px solid var(--primary);{label ? 'padding: 0.3em 1.2em;' : ''}" title={translateText(`menu._title_${id}${$special.numberKeys ? "" : ` [${keys[id]}]`}`, $dictionary)} isActive={$activePage === id} {disabled} on:click={openPage} {red}>
-    <Icon {id} size={1.5} white={$activePage === id} />
+    <!-- emoji applies to show/edit/stage; draw & settings have no emoji mapping and keep their SVG -->
+    <Icon {id} size={1.5} white={$activePage === id} emoji />
     {#if label}<span><T id="menu.{id}" /></span>{/if}
 </MaterialButton>
 

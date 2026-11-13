@@ -100,7 +100,7 @@
             <div class="unsaved" />
         {/if}
         <!-- logo -->
-        <h1 style="align-self: center;width: 100%;padding: 0px 10px;text-align: center;font-size: 1.8em;">FreeShow</h1>
+        <h1 class="brand">Beacon Worship</h1>
         <!-- <div class="logo">
             <img style="height: 35px;" src="./import-logos/freeshow.webp" alt="FreeShow-logo" draggable={false} />
             <h1 style="color: var(--text);font-size: 1.7em;">FreeShow</h1>
@@ -208,6 +208,23 @@
         height: 100%;
         width: 5px;
         background-color: var(--red);
+    }
+
+    /* Beacon Worship wordmark. "Beacon Worship" is longer than the upstream "FreeShow",
+       so it scales down with the navigation column instead of overflowing it. */
+    .brand {
+        align-self: center;
+        width: 100%;
+        padding: 0 8px;
+        margin: 0;
+        text-align: center;
+        font-size: clamp(0.95em, 1.55vw, 1.6em);
+        font-weight: 700;
+        letter-spacing: 0.01em;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        color: var(--brand-gold, #dbac64);
     }
 
     /* .logo {

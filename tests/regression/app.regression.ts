@@ -188,13 +188,27 @@ test.describe("keyboard controls", () => {
         await expect(window.locator("input.drawer_search")).toBeFocused()
     })
 
+    test("drawer tab order matches the Beacon Worship workflow", async () => {
+        await dismissPopups(window)
+        await ensureDrawerOpen(window)
+
+        const rendered: string[] = await window.locator(`${DRAWER_TABS} > button`).evaluateAll((elements) => elements.map((element) => (element as HTMLElement).id))
+
+        // Profiles / focus mode can hide tabs, so only assert the relative order of the
+        // ones that are actually rendered, and require the full set in the default profile.
+        const expected = ["shows", "media", "hymns", "scripture", "audio", "overlays", "templates", "calendar", "functions"]
+        expect(rendered, "drawer tab order").toEqual(expected.filter((id) => rendered.includes(id)))
+        expect(rendered.length, "all nine drawer tabs should render").toBe(expected.length)
+    })
+
     test("Ctrl+<n> switches drawer tabs", async () => {
         await dismissPopups(window)
         await ensureDrawerOpen(window)
 
-        // Derive each shortcut from the rendered order instead of hardcoding it:
-        // values/tabs.ts orders them shows, media, audio, overlays, templates, scripture,
-        // calendar, functions, hymns - so scripture is Ctrl+6, NOT Ctrl+2.
+        // Derive each shortcut from the rendered order instead of hardcoding it, so this
+        // keeps passing if the tab order is re-tuned. The order itself is asserted by the
+        // "drawer tab order" test below. Beacon Worship order:
+        // shows, media, hymns, scripture, audio, overlays, templates, calendar, functions.
         const rendered: string[] = await window.locator(`${DRAWER_TABS} > button`).evaluateAll((elements) => elements.map((element) => (element as HTMLElement).id))
         expect(rendered.length, "drawer tab buttons should be rendered").toBeGreaterThan(0)
 

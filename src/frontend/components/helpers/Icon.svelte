@@ -4,6 +4,7 @@
     import { activePopup, localeDirection, selected, theme, themes } from "../../stores"
     import { triggerClickOnEnterSpace } from "../../utils/clickable"
     import { customIcons } from "../../values/customIcons"
+    import { getEmojiIcon } from "../../values/emojiIcons"
     import icons from "../../values/icons"
     import { fadeColor, hexToHSL, hslToHex } from "./color"
 
@@ -20,6 +21,12 @@
     export let box = 24
     export let gradient = false
     export let boxed = false
+
+    // Beacon Worship: opt-in emoji rendering, used by the drawer tabs and the top
+    // Show/Edit/Stage buttons. Falls back to the normal SVG when the id has no emoji,
+    // so passing `emoji` on an unmapped icon is always safe.
+    export let emoji = false
+    $: emojiGlyph = emoji ? getEmojiIcon(id) : ""
 
     const gradientId = `icon-gradient-${uid(5)}`
     export let gradientColor: string | null = null
@@ -54,7 +61,24 @@
     $: if (boxed && !color) color = "#ffffff"
 </script>
 
-{#if select}
+{#if emojiGlyph}
+    <!-- Emoji are colour glyphs: no fill, no theme gradient, and a font-size based box
+         instead of a viewBox so they stay optically centred next to text labels. -->
+    <span
+        class="emoji-icon {$$props.class || ''}"
+        class:right
+        class:fill
+        class:boxed
+        class:select
+        on:click={select ? click : undefined}
+        on:keydown={select ? triggerClickOnEnterSpace : undefined}
+        tabindex={select ? 0 : undefined}
+        role={select ? "button" : "img"}
+        aria-label={title || id}
+        style="{$$props.style || ''};font-size: {size * (boxed ? 1.05 : 0.95)}rem;{boxed && color ? `background-color: ${fadeColor(color, 0.3)};` : ''}min-width: {width};{boxed ? `min-height: ${height};` : ''}"
+        data-title={title}>{emojiGlyph}</span
+    >
+{:else if select}
     <svg class={$$props.class} class:flip class:white class:right class:fill class:select class:boxed on:click={click} on:keydown={triggerClickOnEnterSpace} tabindex={0} role="button" style="{$$props.style || ''};{color ? `color: ${color};` : ''}{boxed && color ? `background-color: ${fadeColor(color, 0.3)};` : ''}min-width: {width};{boxed ? `min-height: ${height};` : ''}" {width} {height} viewBox="0 0 {box} {box}" data-title={title}>
         {#if !white && colorMid && colorEnd && colorStart}
             <defs>
@@ -127,5 +151,41 @@
     svg.boxed {
         padding: 0.2em;
         border-radius: 0.3em;
+    }
+
+    /* Beacon Worship emoji navigation icons. Sized in rem from the `size` prop so they
+       match the SVG box they replace, and centred on the text baseline. */
+    .emoji-icon {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        line-height: 1;
+        /* keep colour emoji on every platform, and stop the theme font from overriding */
+        font-family: "Apple Color Emoji", "Segoe UI Emoji", "Noto Color Emoji", "Twemoji Mozilla", sans-serif;
+        font-variant-emoji: emoji;
+        flex-shrink: 0;
+        user-select: none;
+    }
+
+    .emoji-icon.right {
+        margin-inline-end: 0.5em;
+    }
+
+    .emoji-icon.fill {
+        width: 100%;
+        height: 100%;
+    }
+
+    .emoji-icon.boxed {
+        padding: 0.2em;
+        border-radius: 0.3em;
+    }
+
+    .emoji-icon.select {
+        cursor: pointer;
+    }
+
+    .emoji-icon.select:hover {
+        background-color: var(--hover);
     }
 </style>

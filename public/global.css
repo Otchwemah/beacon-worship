@@ -54,6 +54,12 @@
     --font-size: 1em;
 
     --navigation-width: 290px;
+
+    /* Beacon Worship brand palette (matches the app icon / DMG artwork) */
+    --brand-navy: #121a25;
+    --brand-navy-deep: #0b1119;
+    --brand-gold: #dbac64;
+    --brand-teal: #479495;
 }
 
 * {

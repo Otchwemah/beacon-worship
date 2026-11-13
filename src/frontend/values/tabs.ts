@@ -2,21 +2,22 @@ import type { SettingsTabs } from "../../types/Tabs"
 
 export const settingsTabs: SettingsTabs[] = ["general", "display_settings", "styles", "audio", "connection", "files", "profiles", "theme", "ai", "other"]
 
+// Beacon Worship: drawer tab order is the operator's workflow order, and it also defines
+// the Ctrl/Cmd+1..9 shortcuts (shortcuts.ts indexes Object.keys(drawerTabs)).
+//   1 Shows · 2 Media · 3 Hymns · 4 Scripture · 5 Audio · 6 Overlays · 7 Templates · 8 Calendar · 9 Functions
 export const drawerTabs = {
     shows: { name: "tabs.shows", icon: "shows", title: "tabs.shows_info" },
     media: { name: "tabs.media", icon: "media", title: "" },
+    hymns: { name: "tabs.hymns", icon: "book", title: "tabs.hymns_info" },
+    scripture: { name: "tabs.scripture", icon: "scripture", title: "" },
+
     audio: { name: "tabs.audio", icon: "audio", title: "" },
     overlays: { name: "tabs.overlays", icon: "overlays", title: "" },
     templates: { name: "tabs.templates", icon: "templates", title: "" },
 
-    scripture: { name: "tabs.scripture", icon: "scripture", title: "" },
     calendar: { name: "tabs.calendar", icon: "calendar", title: "" },
 
-    functions: { name: "tabs.functions", icon: "functions", title: "" },
-
-    // Beacon Worship: standalone Hymns library. Appended last so existing Ctrl+1..8
-    // drawer shortcuts keep their meaning; Hymns becomes Ctrl+9.
-    hymns: { name: "tabs.hymns", icon: "book", title: "tabs.hymns_info" }
+    functions: { name: "tabs.functions", icon: "functions", title: "" }
 }
 
 // export const drawerTabs = {
