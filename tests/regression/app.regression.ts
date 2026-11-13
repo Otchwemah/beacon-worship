@@ -91,10 +91,26 @@ async function ensureDrawerOpen(page: Page) {
     await page.locator(DRAWER_TABS).waitFor({ state: "attached", timeout: 15_000 })
 }
 
+// A popup can still appear between dismissal and the click, so retry the click while
+// clearing overlays instead of letting a 30s timeout fail the spec.
+async function clickStable(page: Page, selector: string, attempts = 4) {
+    const locator = page.locator(selector)
+
+    for (let attempt = 0; attempt < attempts; attempt++) {
+        try {
+            await locator.click({ timeout: 5_000 })
+            return
+        } catch (err) {
+            await dismissPopups(page)
+            if (attempt === attempts - 1) throw err
+        }
+    }
+}
+
 async function openTab(page: Page, id: string) {
     await dismissPopups(page)
     await ensureDrawerOpen(page)
-    await page.locator(`#${id}`).click()
+    await clickStable(page, `#${id}`)
     await expect(page.locator(`#${id}`)).toHaveClass(/isActive/)
 }
 
@@ -105,6 +121,12 @@ test.beforeAll(async () => {
         env: { ...process.env, NODE_ENV: "production" },
         timeout: 120_000
     })
+
+    // Neutralise the upstream update check for the whole context, before any renderer can
+    // fetch. utils/updateSettings.ts fires checkForUpdates() on a 50ms timer, which opens the
+    // "new_update" popup whose overlay intercepts clicks. Dismissing it per-test is a race;
+    // returning an empty release list means hasUpdate is false and the popup never opens.
+    await app.context().route("**/api.github.com/repos/ChurchApps/freeshow/releases**", (route) => route.fulfill({ status: 200, contentType: "application/json", body: "[]" }))
 
     window = await waitForMainWindow(app)
     await window.waitForLoadState("domcontentloaded")
@@ -204,7 +226,8 @@ test.describe("dropdowns", () => {
         const count = await dropdowns.count()
         test.skip(count === 0, "No dropdown rendered in this drawer on a fresh profile")
 
-        await dropdowns.first().click()
+        await dismissPopups(window)
+        await dropdowns.first().click({ timeout: 10_000 })
 
         const options = window.locator('[role="option"]')
         await expect(options.first()).toBeVisible()
@@ -229,7 +252,7 @@ test.describe("live / audience outputs", () => {
         test.skip(await toggle.isDisabled(), "No physical output available on this runner")
 
         const before = (await toggle.getAttribute("class")) || ""
-        await toggle.click()
+        await clickStable(window, "#output_window_button")
 
         // the control window must survive the output toggle
         await expect(window.locator(DRAWER_TABS)).toBeVisible()

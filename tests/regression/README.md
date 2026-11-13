@@ -60,10 +60,13 @@ These cost a full CI cycle each; keep them in mind when editing the specs:
 2. **`span.tabs` is not unique.** The top bar has a similarly-classed strip, so a bare
    `span.tabs` locator throws a Playwright strict-mode violation. Scope it as
    `span.tabs:has(#hymns)`.
-3. **The update popup blocks everything.** `checkForUpdates()` sets `activePopup` to
-   `new_update` on a fresh profile, and its `div.popup` overlay intercepts all clicks
-   (`... intercepts pointer events`). Popups are dismissed before each test via
-   `button.popup-close`, falling back to `Escape`.
+3. **The update popup blocks everything — and it races.** `utils/updateSettings.ts` calls
+   `checkForUpdates()` on a **50 ms timer**, which sets `activePopup` to `new_update`; its
+   `div.popup` overlay intercepts all clicks (`... intercepts pointer events`). Dismissing it
+   per-test is not enough: it can open *between* the dismissal and the click. The durable fix is
+   a context-level route installed right after launch that returns `[]` for
+   `api.github.com/repos/ChurchApps/freeshow/releases`, so `hasUpdate` is false and the popup
+   never opens. `dismissPopups()` and `clickStable()` remain as belt-and-braces.
 4. **Drawer shortcut indices are positional.** Order is shows, media, audio, overlays,
    templates, scripture, calendar, functions, hymns → Scripture is `Ctrl+6`. The spec derives
    indices from the rendered tab bar rather than hardcoding them.
