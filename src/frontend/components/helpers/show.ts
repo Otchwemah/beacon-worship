@@ -267,7 +267,9 @@ export function syncCachedShows(cacheData: Shows = get(showsCache)) {
             quickAccess: show.quickAccess || {},
             ...(show.origin ? { origin: show.origin } : {}),
             ...(show.private ? { private: true } : {}),
-            ...(show.locked ? { locked: true } : {})
+            ...(show.locked ? { locked: true } : {}),
+            // Beacon Worship: keep the stored row thumbnail in the trimmed drawer list.
+            ...(show.thumbnail ? { thumbnail: show.thumbnail } : {})
         }
 
         if (JSON.stringify(current[id]) !== JSON.stringify(trimmed)) updates[id] = trimmed

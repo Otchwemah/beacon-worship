@@ -24,6 +24,9 @@ export class ShowObj implements Show {
     slides: any
     layouts: any
     media: any
+    // Beacon Worship: optional stored preview image path (see Show.thumbnail).
+    // Left undefined so it is omitted from saved JSON when there is no preview.
+    thumbnail?: string
 
     constructor(isPrivate = false, category: null | string = null, layoutId: string = uid(), created: number = new Date().getTime(), template: string | boolean = true) {
         if (template !== false) {

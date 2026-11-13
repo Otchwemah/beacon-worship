@@ -61,6 +61,9 @@ export interface Show {
     layouts: { [key: ID]: Layout }
     media: { [key: ID]: Media }
     midi?: { [key: ID]: Action }
+    // Beacon Worship: filesystem path of a stored preview image (e.g. a PowerPoint deck's
+    // own docProps thumbnail) so drawer rows can show a thumbnail instead of a generic icon.
+    thumbnail?: string
 }
 
 export interface TrimmedShows {
@@ -78,6 +81,9 @@ export interface TrimmedShow {
     quickAccess?: any
     private?: boolean
     locked?: boolean
+    // Beacon Worship: carried through the trimmed drawer list so row thumbnails survive
+    // syncCachedShows()/updateShowsList() without loading the full show.
+    thumbnail?: string
 }
 
 export interface ShowList extends TrimmedShow {

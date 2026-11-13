@@ -236,10 +236,17 @@
     let duration = 0
     $: isMedia = type === "image" || type === "video" || type === "player"
     $: mediaStyle = isMedia ? getMediaStyle($media[id], undefined) : {} // , $styles[getFirstActiveOutput($outputs)?.style || ""]
-    $: mediaStyleString = `pointer-events: none;filter: ${mediaStyle.filter || ""};transform: scale(${mediaStyle.flipped ? "-1" : "1"}, ${mediaStyle.flippedY ? "-1" : "1"});`
+    $: mediaStyleString = `pointer-events: none;${mediaStyle.filter ? `filter: ${mediaStyle.filter};` : ""}transform: scale(${mediaStyle.flipped ? "-1" : "1"}, ${mediaStyle.flippedY ? "-1" : "1"});`
+
+    // Beacon Worship: a deck (type "show") can carry a stored preview image path, so Hymns and
+    // Shows rows show the actual deck instead of a generic icon. Read it from the trimmed list
+    // entry first (no full show load needed), falling back to the loaded show.
+    $: storedShowThumbnail = type === "show" ? show?.thumbnail || $shows[show?.id || id]?.thumbnail || "" : ""
+    $: hasThumbnailBox = isMedia || !!storedShowThumbnail
+
     $: if (id && isMedia) getThumbnail()
     else {
-        thumbnailPath = ""
+        thumbnailPath = storedShowThumbnail
         duration = 0
     }
     async function getThumbnail() {
@@ -279,7 +286,7 @@
     <MaterialButton on:click={click} on:dblclick={doubleClick} {isActive} showOutline={outline} class="context {$$props.class}{readOnly ? '_readonly' : ''}" style="font-weight: normal;--outline-color: {activeOutput || 'var(--secondary)'};{$notFound.show?.includes(id) ? 'background-color: rgb(255 0 0 / 0.2);' : ''}{$$props.style || ''}" tab>
         <div class="row" style={type === "show_placeholder" ? "font-style: italic;" : ""}>
             <span class="cell" style={isProject ? `width: 100%;max-width: ${show.layoutInfo?.name || show.scheduleLength ? 92 : 100}%;` : `width: 75%;min-width: 120px;max-width: calc(100% ${showNumber ? "- var(--number-width)" : ""} - var(--modified-width, 0px));`}>
-                <div class="icon" class:isMedia style="position: relative;">
+                <div class="icon" class:isMedia class:hasThumbnail={hasThumbnailBox} style="position: relative;">
                     {#if type === "show_placeholder"}
                         <Icon id="swap" white right />
                     {:else if thumbnailPath}
@@ -437,7 +444,8 @@
         align-items: center;
         justify-content: center;
     }
-    .icon.isMedia {
+    .icon.isMedia,
+    .icon.hasThumbnail {
         min-width: 35px;
         min-height: 35px;
         width: 35px;

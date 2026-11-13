@@ -94,6 +94,13 @@ export function convertPowerpoint(files: any[]) {
             show.slides = slides
             show.layouts = { [layoutID]: { name: translateText("example.default"), notes: "", slides: layouts } }
 
+            // Beacon Worship: use the deck's own embedded preview as the drawer-row thumbnail.
+            // pptToShow() extracts docProps/thumbnail.* to disk and reports the path here.
+            // Decks without a usable preview fall back to a live first-slide render.
+            if (typeof content.deckThumbnailPath === "string" && content.deckThumbnailPath) {
+                show.thumbnail = content.deckThumbnailPath
+            }
+
             // Beacon Worship: if the operator has saved a hymn background, apply it to the
             // newly imported deck so every hymn slide uses it from the start.
             const hymnBackground = get(special).hymnBackgroundImage
