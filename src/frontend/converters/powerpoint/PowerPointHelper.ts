@@ -16,6 +16,7 @@ import { getItemText } from "../../components/edit/scripts/textStyle"
 import { clone } from "../../components/helpers/array"
 import { hexToHSL, hexToRgb, hslToHex } from "../../components/helpers/color"
 import { getCustomShapePath, getPresetShapePath } from "./powerpointShapes"
+import { resolvePowerpointMediaPath } from "./powerpointMedia"
 
 export interface Relationship {
     id: string // rIdX
@@ -314,7 +315,7 @@ export class PowerPointPackage {
         if (!presentation) return []
         console.log("Presentation:", presentation)
 
-        const slides: ReturnType<typeof this.getSlide>[] = []
+        const slides: NonNullable<ReturnType<PowerPointPackage["getSlide"]>>[] = []
 
         for (const target of presentation.slideOrder) {
             const slide = this.getSlide(presentation, target)
@@ -1394,8 +1395,10 @@ export class PowerPointPackage {
             target = tryFind(ctx.part) || tryFind(ctx.slide) || tryFind(ctx.layout) || tryFind(ctx.master)
         }
         if (!target) target = rid
-        // Map to contentPaths if available
-        const fsPath = this.contentPaths && this.contentPaths[target]
+        // Map to the extracted media file. Relationship targets can differ in casing,
+        // encoding, separators or relative form; a plain exact-key lookup can miss and
+        // leave the slide with an unloadable package-relative path (missing preview/thumbnail).
+        const fsPath = resolvePowerpointMediaPath(target, this.contentPaths)
         return fsPath || target
     }
 }
