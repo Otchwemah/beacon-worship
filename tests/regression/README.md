@@ -90,10 +90,20 @@ HTML report, traces, screenshots and video are still uploaded as `regression-rep
 
 ## Status
 
-The specs have now run against real Electron on Windows and macOS in CI, and the selector traps
-above were fixed from those runs. A full Electron run still cannot be executed in the authoring
-workspace (no display, no browser system libraries), so CI remains the source of truth.
+**Blocking gate as of run #9.** All 10 specs pass on `windows-2022` and `macos-latest`, both jobs
+green, both report artifacts uploaded. A failing regression spec now fails the Validation run.
 
-The `regression` job is **advisory (`continue-on-error`) until it has a confirmed green run**,
-after which it should be flipped to blocking. Note that an advisory job can fail while the overall
-run still reports success — read the per-job status or the digest, not just the run badge.
+A full Electron run still cannot be executed in the authoring workspace (no display, no browser
+system libraries), so CI remains the source of truth for these specs.
+
+How the job reports failure:
+
+- the spec step keeps `continue-on-error` so the digest, artifact upload and step-outcome table
+  still run when specs fail;
+- the final `Mark job failed if regression failed` step restores the true exit status;
+- the diagnostics **upload** stays non-fatal deliberately — a report-upload problem is not a
+  product regression (this was the cause of a red macOS job in run #8 while all specs passed).
+
+`skipped=1` is expected: the audience-output toggle test skips when the runner has no physical
+output. `flaky=1` means a spec needed a retry; CI allows 2 retries. `svelte-check` remains advisory
+because of a pre-existing type backlog unrelated to these specs.

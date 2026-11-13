@@ -161,10 +161,13 @@ jobs:
         runs-on: ${{ matrix.os }}
         timeout-minutes: 40
 
-        # ADVISORY until the first confirmed green run: these specs were authored in a
-        # workspace with no display, so they have never driven a real Electron instance yet.
-        # Flip this off once a run is confirmed green to make them a blocking gate.
-        continue-on-error: true
+        # BLOCKING as of run #9 (b533f7c8): all 10 specs passed on both windows-2022 and
+        # macos-latest, both jobs green, both report artifacts uploaded. A failing regression
+        # spec now fails the Validation run.
+        #
+        # The spec step itself keeps continue-on-error so the digest, artifact upload and
+        # step-outcome table still run on failure; the final "Mark job failed" step restores
+        # the true exit status. Diagnostics upload stays non-fatal on purpose.
 
         strategy:
             fail-fast: false
