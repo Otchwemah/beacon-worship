@@ -91,7 +91,12 @@ jobs:
             fail-fast: false
             matrix:
                 os:
-                    - windows-latest
+                    # Pinned to windows-2022 on purpose, matching the Release workflow.
+                    # This app has four node-gyp native deps (grandiose, osr-capture,
+                    # libltc-wrapper, better-sqlite3). On the newer windows-latest image
+                    # node-gyp cannot parse the Visual Studio 18 version string and aborts
+                    # with "Could not find any Visual Studio installation to use".
+                    - windows-2022
                     - macos-latest
                     - ubuntu-latest
 
@@ -108,7 +113,7 @@ jobs:
             # node-gyp native dependencies are more reliable with Python 3.11 on macOS.
             - name: Install Python 3.11 (macOS)
               if: runner.os == 'macOS'
-              uses: actions/setup-python@v5
+              uses: actions/setup-python@v6
               with:
                   python-version: "3.11"
 
@@ -120,6 +125,10 @@ jobs:
 
             - name: Install dependencies
               run: npm ci
+              env:
+                  # Belt-and-braces for node-gyp on Windows: tell it explicitly which
+                  # MSVC toolchain to use instead of relying on version auto-detection.
+                  npm_config_msvs_version: ${{ runner.os == 'Windows' && '2022' || '' }}
 
             # Production build only (prebuild + frontend/servers/electron + postbuild).
             # This does not run electron-builder publish or create a release.
@@ -127,3 +136,18 @@ jobs:
               run: npm run build
               env:
                   NODE_OPTIONS: --max-old-space-size=4096
+
+            # Surface the real compiler/native-dep error in the job log instead of only
+            # npm's generic "exit code 1" summary.
+            - name: Dump npm debug log on failure
+              if: failure()
+              shell: bash
+              run: |
+                  log_dir="$(npm config get cache)/_logs"
+                  latest="$(ls -t "$log_dir"/*.log 2>/dev/null | head -1 || true)"
+                  if [ -n "$latest" ]; then
+                    echo "=== tail of $latest ==="
+                    tail -n 150 "$latest"
+                  else
+                    echo "No npm debug log found in $log_dir"
+                  fi
