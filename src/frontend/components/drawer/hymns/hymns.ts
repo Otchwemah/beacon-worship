@@ -121,6 +121,21 @@ export function getHymnCategoryIds(shows: ShowList[], hymnCategoryIds: string[] 
 }
 
 /**
+ * Enable/disable a category as a hymn book (Settings → General → Hymn books).
+ * Pure: returns a new deduped id list and never mutates the input. An empty category id is
+ * ignored. This only changes which categories are treated as hymn books; it does not edit shows.
+ */
+export function toggleHymnCategory(hymnCategoryIds: string[] | null | undefined, categoryId: string, enabled: boolean): string[] {
+    const ids = new Set((hymnCategoryIds || []).filter((id) => typeof id === "string" && id.length > 0))
+    if (!categoryId) return [...ids]
+
+    if (enabled) ids.add(categoryId)
+    else ids.delete(categoryId)
+
+    return [...ids]
+}
+
+/**
  * Replace the background on every slide of a hymn deck with the operator's saved image.
  *
  * FreeShow resolves a slide background in two places:

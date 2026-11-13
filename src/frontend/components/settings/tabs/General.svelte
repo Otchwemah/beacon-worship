@@ -5,6 +5,7 @@
     import { sortByName } from "../../helpers/array"
     import Title from "../../input/Title.svelte"
     import HymnBackground from "./HymnBackground.svelte"
+    import HymnBooks from "./HymnBooks.svelte"
     import MaterialDropdown from "../../inputs/MaterialDropdown.svelte"
     import MaterialPopupButton from "../../inputs/MaterialPopupButton.svelte"
     import MaterialToggleSwitch from "../../inputs/MaterialToggleSwitch.svelte"
@@ -61,6 +62,9 @@
 <!-- <Checkbox checked={$special.disablePresenterControllerKeys} on:change={(e) => updateSpecial(e.target.checked, "disablePresenterControllerKeys")} /> -->
 
 <!-- HYMNS -->
+
+<Title label="hymns.books" icon="book" />
+<HymnBooks />
 
 <Title label="hymns.background" icon="book" />
 <HymnBackground />

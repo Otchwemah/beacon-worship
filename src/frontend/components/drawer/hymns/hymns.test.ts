@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { ShowList } from "../../../../types/Show"
-import { applyHymnBackground, filterHymnDecks, getHymnCategoryIds, getHymnNumber, isHymnDeck, searchHymnDecks, sortHymnDecks } from "./hymns"
+import { applyHymnBackground, filterHymnDecks, getHymnCategoryIds, getHymnNumber, isHymnDeck, searchHymnDecks, sortHymnDecks, toggleHymnCategory } from "./hymns"
 
 function show(partial: Partial<ShowList> & { id: string }): ShowList {
     return { name: "", category: null, timestamps: { created: 0, modified: null, used: null }, ...partial } as ShowList
@@ -188,5 +188,37 @@ describe("applyHymnBackground", () => {
 
     it("handles decks with no slides or layouts", () => {
         expect(applyHymnBackground({}, "/bg.png")).toEqual({ slides: {}, layouts: {} })
+    })
+})
+
+describe("toggleHymnCategory", () => {
+    it("adds a category id when enabled", () => {
+        expect(toggleHymnCategory([], "phb", true)).toEqual(["phb"])
+        expect(toggleHymnCategory(["mhb"], "phb", true)).toEqual(["mhb", "phb"])
+    })
+
+    it("removes a category id when disabled", () => {
+        expect(toggleHymnCategory(["mhb", "phb"], "phb", false)).toEqual(["mhb"])
+        expect(toggleHymnCategory(["phb"], "phb", false)).toEqual([])
+    })
+
+    it("dedupes existing ids and ignores empty category ids", () => {
+        expect(toggleHymnCategory(["phb", "phb", ""], "phb", true)).toEqual(["phb"])
+        expect(toggleHymnCategory(["phb"], "", true)).toEqual(["phb"])
+    })
+
+    it("handles null / undefined input without mutating it", () => {
+        const input = ["phb"]
+        expect(toggleHymnCategory(undefined, "mhb", true)).toEqual(["mhb"])
+        expect(toggleHymnCategory(null, "mhb", true)).toEqual(["mhb"])
+        expect(toggleHymnCategory(input, "mhb", true)).toEqual(["phb", "mhb"])
+        expect(input).toEqual(["phb"])
+    })
+
+    it("designating a category makes its non-PowerPoint shows hymn decks", () => {
+        const shows = [show({ id: "a", name: "Custom Hymn", category: "phb", origin: "manual" }), show({ id: "b", name: "Song", category: "songs", origin: "manual" })]
+        const ids = toggleHymnCategory([], "phb", true)
+        expect(filterHymnDecks(shows, { hymnCategoryIds: ids }).map((s) => s.id)).toEqual(["a"])
+        expect(getHymnCategoryIds(shows, ids)).toEqual(["phb"])
     })
 })

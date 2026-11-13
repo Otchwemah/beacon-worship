@@ -421,9 +421,11 @@
     },
     "hymns": {
         "books": "Hymn books",
+        "books_hint": "PowerPoint imports are always included. Mark a category to also treat its shows as hymns.",
+        "books_empty": "No categories yet. Create categories in the Shows tab first.",
         "click_hint": "Click to select · double-click to go live",
         "empty": "No hymn decks yet",
-        "empty_hint": "Import a PowerPoint (.pptx) hymn book to get started. Imported decks appear here automatically.",
+        "empty_hint": "Import a PowerPoint (.pptx) hymn book, or mark a category as a hymn book in Settings → General.",
         "import": "Import hymns",
         "search": "Search",
         "search_placeholder": "Search hymns…",
