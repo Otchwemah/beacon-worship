@@ -15,7 +15,17 @@
 
 const fs = require("fs")
 const path = require("path")
-const yaml = require("js-yaml")
+
+// js-yaml is a production dependency of electron-builder (app-builder-lib / builder-util /
+// dmg-builder), so `npm ci` always provides it hoisted at node_modules/js-yaml. It is not a
+// direct dependency of this project, hence the explicit guidance if it is ever absent.
+let yaml
+try {
+    yaml = require("js-yaml")
+} catch {
+    console.error("Could not load js-yaml. Run `npm ci` first (it ships with electron-builder).")
+    process.exit(1)
+}
 
 const projectRoot = path.join(__dirname, "..", "..")
 const sourcePath = path.join(projectRoot, "config", "building", "electron-builder.yaml")
@@ -41,6 +51,10 @@ function makeUnsigned(config) {
 
     // never let a stray CSC env var trigger signing
     out.forceCodeSigning = false
+
+    // Shrink the download. GitHub artifact downloads cannot be resumed in a browser, so a
+    // smaller installer materially reduces the chance of a stalled transfer.
+    out.compression = "maximum"
 
     return out
 }

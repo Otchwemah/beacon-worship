@@ -30,7 +30,13 @@ on:
                 options:
                     - arm64
                     - x64
-                    - both
+            mac_format:
+                description: "dmg = drag-to-install (recommended). Keep it to ONE format: uploading both roughly doubles the download size."
+                type: choice
+                default: dmg
+                options:
+                    - dmg
+                    - zip
 
 permissions:
     contents: read
@@ -77,13 +83,17 @@ jobs:
             - name: Generate unsigned build config
               run: node scripts/building/makeUnsignedConfig.js
 
+            # Build exactly ONE format for ONE architecture. The source config lists dmg+zip
+            # for x64+arm64; passing the target explicitly keeps the download small, which
+            # matters because GitHub artifact downloads cannot be resumed in a browser.
             - name: Package installer
               shell: bash
               run: |
-                  arch_flags=""
-                  if [ "${{ inputs.mac_arch }}" = "arm64" ]; then arch_flags="--arm64"; fi
-                  if [ "${{ inputs.mac_arch }}" = "x64" ]; then arch_flags="--x64"; fi
-                  npx electron-builder --config config/building/electron-builder.unsigned.generated.yaml --mac $arch_flags --publish never
+                  npx electron-builder \
+                    --config config/building/electron-builder.unsigned.generated.yaml \
+                    --mac "${{ inputs.mac_format }}" \
+                    --${{ inputs.mac_arch }} \
+                    --publish never
               env:
                   NODE_OPTIONS: --max-old-space-size=4096
                   # belt-and-braces: make sure no signing identity is picked up
@@ -92,17 +102,26 @@ jobs:
             - name: List produced files
               if: always()
               shell: bash
-              run: ls -lh dist/ || true
+              run: |
+                  ls -lh dist/ || true
+                  {
+                    echo "### Installer size"
+                    echo ""
+                    echo '```'
+                    ls -lh dist/*.dmg dist/*.zip 2>/dev/null || echo "(no installer found)"
+                    echo '```'
+                  } >> "$GITHUB_STEP_SUMMARY"
 
+            # compression-level 0: the .dmg/.zip is already compressed, so re-deflating it in
+            # the artifact wrapper wastes CI time and saves almost nothing.
             - name: Upload installer
               uses: actions/upload-artifact@v5
               with:
-                  name: BeaconWorship-macOS-${{ inputs.mac_arch }}
-                  path: |
-                      dist/*.dmg
-                      dist/*.zip
+                  name: BeaconWorship-macOS-${{ inputs.mac_arch }}-${{ inputs.mac_format }}
+                  path: dist/*.${{ inputs.mac_format }}
                   if-no-files-found: error
                   retention-days: 30
+                  compression-level: 0
 
             - name: How to open it
               if: always()
@@ -111,7 +130,7 @@ jobs:
                   {
                     echo "### macOS installer ready"
                     echo ""
-                    echo "Download **BeaconWorship-macOS-${{ inputs.mac_arch }}** from the Artifacts section of this run, unzip it, and open the \`.dmg\`."
+                    echo "Download **BeaconWorship-macOS-${{ inputs.mac_arch }}-${{ inputs.mac_format }}** from the Artifacts section of this run, unzip it, and open the \`.${{ inputs.mac_format }}\`."
                     echo ""
                     echo "**This build is unsigned**, so macOS will say it cannot be opened."
                     echo "Drag Beacon Worship to Applications, then **right-click it → Open → Open**."
@@ -122,6 +141,21 @@ jobs:
                     echo '```'
                     echo ""
                     echo "arm64 = Apple Silicon (M1/M2/M3/M4). x64 = Intel."
+                    echo ""
+                    echo "#### If the download keeps stalling"
+                    echo ""
+                    echo "GitHub serves artifacts as one zip and browsers **cannot resume** it. Options:"
+                    echo ""
+                    echo "1. Re-run this workflow with a single format (already the default) — uploading dmg+zip doubles the size."
+                    echo "2. Try a different browser, or a phone hotspot / different network."
+                    echo "3. Use a resumable download. With the GitHub CLI installed (\`brew install gh\`):"
+                    echo ""
+                    echo '```bash'
+                    echo 'gh auth login'
+                    echo "gh run download ${{ github.run_id }} -R ${{ github.repository }} -n BeaconWorship-macOS-${{ inputs.mac_arch }}-${{ inputs.mac_format }}"
+                    echo '```'
+                    echo ""
+                    echo "\`gh run download\` retries and writes the file directly, which survives a flaky connection far better than a browser."
                   } >> "$GITHUB_STEP_SUMMARY"
 
     windows:
