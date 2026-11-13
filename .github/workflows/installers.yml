@@ -1,0 +1,186 @@
+name: Build Installers
+
+# Beacon Worship: produce downloadable, UNSIGNED installers on demand.
+#
+# This is deliberately separate from the Release workflow, which stays untouched and disabled
+# for this fork. This workflow:
+#   - only runs when you press "Run workflow" (workflow_dispatch), never on push
+#   - never creates a GitHub Release and never uploads to a release
+#   - passes --publish never explicitly
+#   - uses no signing or notarization credentials
+#
+# Output is attached to the workflow run as artifacts you download from the run page.
+# Because the builds are unsigned, macOS Gatekeeper and Windows SmartScreen will warn on first
+# launch; the job summary prints the exact steps to open them.
+on:
+    workflow_dispatch:
+        inputs:
+            platform:
+                description: "Which platform to build"
+                type: choice
+                default: macos
+                options:
+                    - macos
+                    - windows
+                    - both
+            mac_arch:
+                description: "Mac chip: arm64 = Apple Silicon (M1/M2/M3/M4), x64 = Intel"
+                type: choice
+                default: arm64
+                options:
+                    - arm64
+                    - x64
+                    - both
+
+permissions:
+    contents: read
+
+concurrency:
+    group: installers-${{ github.ref }}
+    cancel-in-progress: false
+
+jobs:
+    macos:
+        name: macOS installer (unsigned)
+        if: inputs.platform == 'macos' || inputs.platform == 'both'
+        runs-on: macos-latest
+        timeout-minutes: 60
+
+        steps:
+            - name: Check out Git repository
+              uses: actions/checkout@v5
+
+            - name: Install Node.js and NPM
+              uses: actions/setup-node@v5
+              with:
+                  node-version: 22
+                  cache: npm
+
+            # node-gyp native deps are more reliable with Python 3.11 on macOS.
+            - name: Install Python 3.11
+              uses: actions/setup-python@v6
+              with:
+                  python-version: "3.11"
+
+            - name: Install dependencies
+              run: npm ci
+
+            # electron-builder needs this to write a .dmg on macOS.
+            - name: Install dmg-license
+              run: npm install --no-save dmg-license
+
+            - name: Build app
+              run: npm run build
+              env:
+                  NODE_OPTIONS: --max-old-space-size=4096
+
+            - name: Generate unsigned build config
+              run: node scripts/building/makeUnsignedConfig.js
+
+            - name: Package installer
+              shell: bash
+              run: |
+                  arch_flags=""
+                  if [ "${{ inputs.mac_arch }}" = "arm64" ]; then arch_flags="--arm64"; fi
+                  if [ "${{ inputs.mac_arch }}" = "x64" ]; then arch_flags="--x64"; fi
+                  npx electron-builder --config config/building/electron-builder.unsigned.generated.yaml --mac $arch_flags --publish never
+              env:
+                  NODE_OPTIONS: --max-old-space-size=4096
+                  # belt-and-braces: make sure no signing identity is picked up
+                  CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+            - name: List produced files
+              if: always()
+              shell: bash
+              run: ls -lh dist/ || true
+
+            - name: Upload installer
+              uses: actions/upload-artifact@v5
+              with:
+                  name: BeaconWorship-macOS-${{ inputs.mac_arch }}
+                  path: |
+                      dist/*.dmg
+                      dist/*.zip
+                  if-no-files-found: error
+                  retention-days: 30
+
+            - name: How to open it
+              if: always()
+              shell: bash
+              run: |
+                  {
+                    echo "### macOS installer ready"
+                    echo ""
+                    echo "Download **BeaconWorship-macOS-${{ inputs.mac_arch }}** from the Artifacts section of this run, unzip it, and open the \`.dmg\`."
+                    echo ""
+                    echo "**This build is unsigned**, so macOS will say it cannot be opened."
+                    echo "Drag Beacon Worship to Applications, then **right-click it → Open → Open**."
+                    echo "If macOS still refuses, run:"
+                    echo ""
+                    echo '```bash'
+                    echo 'xattr -dr com.apple.quarantine "/Applications/Beacon Worship.app"'
+                    echo '```'
+                    echo ""
+                    echo "arm64 = Apple Silicon (M1/M2/M3/M4). x64 = Intel."
+                  } >> "$GITHUB_STEP_SUMMARY"
+
+    windows:
+        name: Windows installer (unsigned)
+        if: inputs.platform == 'windows' || inputs.platform == 'both'
+        runs-on: windows-2022
+        timeout-minutes: 60
+
+        steps:
+            - name: Check out Git repository
+              uses: actions/checkout@v5
+
+            - name: Install Node.js and NPM
+              uses: actions/setup-node@v5
+              with:
+                  node-version: 22
+                  cache: npm
+
+            - name: Install dependencies
+              run: npm ci
+              env:
+                  npm_config_msvs_version: "2022"
+
+            - name: Build app
+              run: npm run build
+              env:
+                  NODE_OPTIONS: --max-old-space-size=4096
+
+            - name: Generate unsigned build config
+              run: node scripts/building/makeUnsignedConfig.js
+
+            - name: Package installer
+              shell: bash
+              run: npx electron-builder --config config/building/electron-builder.unsigned.generated.yaml --win --publish never
+              env:
+                  NODE_OPTIONS: --max-old-space-size=4096
+                  CSC_IDENTITY_AUTO_DISCOVERY: "false"
+
+            - name: List produced files
+              if: always()
+              shell: bash
+              run: ls -lh dist/ || true
+
+            - name: Upload installer
+              uses: actions/upload-artifact@v5
+              with:
+                  name: BeaconWorship-Windows
+                  path: dist/*.exe
+                  if-no-files-found: error
+                  retention-days: 30
+
+            - name: How to open it
+              if: always()
+              shell: bash
+              run: |
+                  {
+                    echo "### Windows installer ready"
+                    echo ""
+                    echo "Download **BeaconWorship-Windows** from the Artifacts section of this run, unzip it, and run the \`.exe\`."
+                    echo ""
+                    echo "**This build is unsigned**, so SmartScreen will warn. Choose **More info → Run anyway**."
+                  } >> "$GITHUB_STEP_SUMMARY"

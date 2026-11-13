@@ -22,3 +22,5 @@ test-results/
 *.ipr
 *.iws
 .serena
+# Beacon Worship: generated unsigned electron-builder config (scripts/building/makeUnsignedConfig.js)
+config/building/electron-builder.unsigned.generated.yaml
