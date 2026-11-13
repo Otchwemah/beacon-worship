@@ -2,25 +2,48 @@ import { get } from "svelte/store"
 import { uid } from "uid"
 import type { Show, Slide, SlideData } from "../../../types/Show"
 import { ShowObj } from "../../classes/Show"
-import { applyHymnBackground } from "../../components/drawer/hymns/hymns"
+import { applyHymnBackground, toggleHymnCategory } from "../../components/drawer/hymns/hymns"
 import { checkName } from "../../components/helpers/show"
-import { drawerTabsData, special } from "../../stores"
+import { categories, drawerTabsData, special } from "../../stores"
 import { translateText } from "../../utils/language"
 import { createCategory, setTempShows } from "../importHelpers"
 import { PowerPointPackage } from "./PowerPointHelper"
+import { hymnBookCategoryId } from "./hymnBookCategory"
+
+// Create (or reuse) the hymn-book category a folder import lands in, and register it as a
+// hymn book so its decks show up in the Hymns tab even if they were not PPT-originated.
+function createHymnBookCategory(name: string): string {
+    const id = hymnBookCategoryId(name)
+    if (!id) return ""
+
+    if (!get(categories)[id]) createCategory(name, "book")
+
+    special.update((a) => {
+        a.hymnCategoryIds = toggleHymnCategory(a.hymnCategoryIds, id, true)
+        return a
+    })
+
+    return id
+}
 
 // missing shapes/tables/graphs
 // item/line background, some text color incorrect
 // extract embedded videos/audio
 
-export function convertPowerpoint(files: any[]) {
+export function convertPowerpoint(files: any[], options: { categoryName?: string } = {}) {
     // Beacon Worship: hymn/PPT imports must not raise the blocking "Importing..." alert.
     // The import dialog already closes itself; setTempShows() still emits the normal
     // finished toast when conversion completes.
 
-    // use selected category (or Presentation if no specific is selected)
-    let categoryId = get(drawerTabsData).shows?.activeSubTab
-    if (categoryId === "all" || categoryId === "unlabeled") categoryId = createCategory("presentation", "presentation", { isDefault: true })
+    // "Load folder" names the destination hymn book after the folder. Otherwise fall back
+    // to the selected Shows category (or Presentation if none is selected).
+    let categoryId = ""
+    if (options.categoryName) {
+        categoryId = createHymnBookCategory(options.categoryName)
+    } else {
+        categoryId = get(drawerTabsData).shows?.activeSubTab || ""
+        if (categoryId === "all" || categoryId === "unlabeled") categoryId = createCategory("presentation", "presentation", { isDefault: true })
+    }
 
     const tempShows: any[] = []
 

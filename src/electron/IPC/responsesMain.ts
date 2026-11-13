@@ -23,6 +23,7 @@ import { deleteBackup, getBackups, restoreFiles } from "../data/backup"
 import { getLocalIPs } from "../data/bonjour"
 import { checkIfMediaDownloaded, downloadLessonsMedia, downloadMedia } from "../data/downloadMedia"
 import { importShow } from "../data/import"
+import { HYMN_DECK_EXTENSIONS, categoryNameFromFolder, scanImportFolder } from "../data/importFolder"
 import { save } from "../data/save"
 import { _store, appDataPath, config, createStores, getStore, getStoreValue, setStoreValue } from "../data/store"
 import { captureSlide, doesMediaExist, getThumbnail, getThumbnailFolderPath, pdfToImage, saveImage } from "../data/thumbnails"
@@ -35,7 +36,7 @@ import { downloadFfmpeg, resolveFfmpegPath } from "../streaming/ffmpegManager"
 import { processAudioData, timecodeStart, timecodeStop, updateTimecodeValue } from "../timecode/timecode"
 import { apiReturnData, emitOSC, startWebSocketAndRest, stopApiListener } from "../utils/api"
 import { closeMain } from "../utils/close"
-import { addToMediaFolder, bundleMediaFiles, createFolder, getDataFolderPath, getDataFolderRoot, getFileInfo, getMediaCodec, getMediaSyncFolderPath, getMediaTracks, getPaths, getSimularPaths, loadFile, loadShowsAsync, locateMediaFile, openInSystem, readExifData, readFile, readFolder, readFolderContent, selectFiles, selectFilesDialog, selectFolder, setMediaSyncFolderPath, writeFile } from "../utils/files"
+import { addToMediaFolder, bundleMediaFiles, createFolder, getDataFolderPath, getDataFolderRoot, getFileInfo, getMediaCodec, getMediaSyncFolderPath, getMediaTracks, getPaths, getSimularPaths, loadFile, loadShowsAsync, locateMediaFile, openInSystem, readExifData, readFile, readFolder, readFolderContent, selectFiles, selectFilesDialog, selectFolder, selectFolderDialog, setMediaSyncFolderPath, writeFile } from "../utils/files"
 import { listGraphicsDevices } from "../utils/gpu"
 import { getMachineId } from "../utils/helpers"
 import { LyricSearch } from "../utils/LyricSearch"
@@ -86,6 +87,7 @@ export const mainResponses: MainResponses = {
     [Main.DELETE_BACKUP]: (data) => deleteBackup(data),
     [Main.IMPORT]: (data) => startImport(data),
     [Main.IMPORT_FILES]: (data) => importFiles(data),
+    [Main.IMPORT_FOLDER]: (data) => startImportFolder(data),
     [Main.BIBLE]: (data) => loadScripture(data),
     [Main.SHOW]: (data) => loadShow(data),
     // MAIN
@@ -304,6 +306,26 @@ export async function startImport(data: { channel: string; format: { name: strin
 
 function importFiles(data: { id: string; paths: string[] }) {
     importShow(data.id, data.paths)
+}
+
+// Beacon Worship — Hymns "Load folder": pick a folder, import every deck inside it.
+// Scanning happens here (main process) so the renderer never needs filesystem access.
+export async function startImportFolder(data: { channel: string; extensions: string[]; useFolderNameAsCategory?: boolean; recursive?: boolean }) {
+    const folder = await selectFolderDialog()
+    if (!folder) return
+
+    const extensions = data.extensions?.length ? data.extensions : HYMN_DECK_EXTENSIONS
+    const result = await scanImportFolder(folder, extensions, { recursive: data.recursive !== false })
+
+    if (!result.files.length) {
+        sendToMain(ToMain.TOAST, "hymns.folder_empty")
+        return
+    }
+
+    if (result.truncated) sendToMain(ToMain.TOAST, "hymns.folder_truncated")
+
+    const categoryName = data.useFolderNameAsCategory === false ? undefined : categoryNameFromFolder(folder)
+    await importShow(data.channel, result.files, { categoryName })
 }
 
 // BIBLE

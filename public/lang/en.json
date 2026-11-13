@@ -429,7 +429,7 @@
         "import": "Import hymns",
         "search": "Search",
         "search_placeholder": "Search hymns…",
-        "search_hint": "Type a number to search by hymn number, or text to search by title. Mirrors the top drawer search.",
+        "search_hint": "Type a number to search by hymn number, or text to search by title.",
         "background": "Background",
         "background_label": "Hymn background",
         "background_hint": "Replaces the background on every hymn slide. Also applied to newly imported hymn decks.",
@@ -439,7 +439,13 @@
         "voice_presented": "Hymn $1 presented",
         "voice_unavailable": "Hymn $1 is not in the local library",
         "voice_ambiguous": "Multiple hymns numbered $1 — select one in the Hymns tab",
-        "voice_error": "Could not present the requested hymn"
+        "voice_error": "Could not present the requested hymn",
+        "load_folder": "Load folder",
+        "load_folder_hint": "Choose a folder of PowerPoint hymn books (.pptx / .ppt). Every deck inside it, including subfolders, is imported into a hymn book named after the folder.",
+        "importing": "Importing hymn decks…",
+        "folder_empty": "No PowerPoint files found in that folder",
+        "folder_truncated": "Folder has more than 2000 decks — imported the first 2000",
+        "count_hint": "Hymns shown / total in this hymn book"
     },
     "tabs": {
         "shows": "Shows",

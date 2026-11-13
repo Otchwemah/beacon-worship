@@ -1,5 +1,7 @@
 <script lang="ts">
+    import { Main } from "../../../../types/IPC/Main"
     import type { ShowList } from "../../../../types/Show"
+    import { sendMain } from "../../../IPC/main"
     import { activePopup, activeProfile, activeShow, categories, drawer, focusedArea, hymnSearchValue, sortedShowsList, special } from "../../../stores"
     import { getAccess } from "../../../utils/profile"
     import T from "../../helpers/T.svelte"
@@ -13,6 +15,7 @@
     import SelectElem from "../../system/SelectElem.svelte"
     import VirtualList from "../VirtualList.svelte"
     import { filterHymnDecks, getHymnNumber, searchHymnDecks, sortHymnDecks } from "./hymns"
+    import HymnsToolbar from "./HymnsToolbar.svelte"
 
     // Beacon Worship — standalone Hymns library.
     // Single-click selects the deck in the Show panel only; double-click selects AND
@@ -76,9 +79,17 @@
     function openImport() {
         activePopup.set("import")
     }
+
+    function loadFolder() {
+        sendMain(Main.IMPORT_FOLDER, { channel: "powerpoint", extensions: ["pptx", "ppt"], useFolderNameAsCategory: true, recursive: true })
+    }
 </script>
 
-<Autoscroll style="overflow-y: auto;flex: 1;">
+<!-- Beacon Worship: the search bar sits above the list it filters, not in the left column. -->
+<div class="hymns-panel">
+    <HymnsToolbar {readOnly} count={filtered.length} total={hymnDecks.length} />
+
+    <Autoscroll style="overflow-y: auto;flex: 1;">
     <div class="column {readOnly ? '' : 'context #drawer_show'}" on:mouseup={() => focusedArea.set("show_drawer")}>
         {#if filtered.length}
             <div class="hint">
@@ -100,20 +111,32 @@
                 <Icon id="book" size={2} />
                 <p style="margin-top: 10px;"><T id="hymns.empty" /></p>
                 <p class="sub"><T id="hymns.empty_hint" /></p>
+                <MaterialButton icon="folder" title="hymns.load_folder_hint" disabled={readOnly} on:click={loadFolder} style="margin-top: 16px;" white>
+                    <T id="hymns.load_folder" />
+                </MaterialButton>
             </Center>
         {/if}
     </div>
 </Autoscroll>
 
-{#if !filtered.length && !isSearching}
-    <FloatingInputs onlyOne gradient>
-        <MaterialButton icon="import" title="actions.import [Ctrl+I]" disabled={readOnly} on:click={openImport} white>
-            <T id="hymns.import" />
-        </MaterialButton>
-    </FloatingInputs>
-{/if}
+    {#if !filtered.length && !isSearching}
+        <FloatingInputs onlyOne gradient>
+            <MaterialButton icon="import" title="actions.import [Ctrl+I]" disabled={readOnly} on:click={openImport} white>
+                <T id="hymns.import" />
+            </MaterialButton>
+        </FloatingInputs>
+    {/if}
+</div>
 
 <style>
+    .hymns-panel {
+        display: flex;
+        flex-direction: column;
+        height: 100%;
+        min-height: 0;
+        position: relative;
+    }
+
     .column {
         overflow-y: auto;
         display: flex;

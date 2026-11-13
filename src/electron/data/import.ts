@@ -18,7 +18,11 @@ type FileData = { content: Buffer | string | object; path?: string; name?: strin
 
 const specialImports = {
     powerpoint: async (files: string[]) => {
-        sendToMain(ToMain.ALERT, "popup.importing")
+        // Beacon Worship: non-blocking toast instead of ToMain.ALERT. ALERT opens a modal
+        // popup that covers the app for the whole conversion, which is unusable when a
+        // folder of 100+ hymn books is loaded at once. setTempShows() emits the finished
+        // toast when the conversion completes.
+        sendToMain(ToMain.TOAST, "hymns.importing")
 
         const data: FileData[] = []
         for await (const filePath of files) {
@@ -89,7 +93,7 @@ const specialImports = {
     }
 }
 
-export async function importShow(id: string, files: string[] | null) {
+export async function importShow(id: string, files: string[] | null, options: { categoryName?: string } = {}) {
     if (!files?.length) return
 
     let importId = id
@@ -145,7 +149,9 @@ export async function importShow(id: string, files: string[] | null) {
         data = (data as FileData[]).map((file) => ({ ...file, type: detectFileType(file.content as string) }))
     }
 
-    sendToMain(ToMain.IMPORT2, { channel: id, data })
+    // categoryName is only set by the Hymns "Load folder" flow; it makes the imported decks
+    // land in a hymn-book category named after the folder instead of the active Shows category.
+    sendToMain(ToMain.IMPORT2, { channel: id, data, ...(options.categoryName ? { categoryName: options.categoryName } : {}) })
 }
 
 async function readFile(filePath: string, encoding: BufferEncoding = "utf8", id?: string) {

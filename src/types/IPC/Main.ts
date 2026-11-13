@@ -58,6 +58,7 @@ export enum Main {
     /////
     IMPORT = "IMPORT",
     IMPORT_FILES = "IMPORT_FILES",
+    IMPORT_FOLDER = "IMPORT_FOLDER",
     BIBLE = "BIBLE",
     SHOW = "SHOW",
     SAVE = "SAVE",
@@ -201,6 +202,8 @@ export interface MainSendPayloads {
     /////
     [Main.IMPORT]: { channel: string; format: { name: string; extensions: string[] } }
     [Main.IMPORT_FILES]: { id: string; paths: string[] }
+    // Beacon Worship: import every matching deck inside a chosen folder (Hymns "Load folder").
+    [Main.IMPORT_FOLDER]: { channel: string; extensions: string[]; useFolderNameAsCategory?: boolean; recursive?: boolean }
     [Main.BIBLE]: { id: string; name: string }
     [Main.SHOW]: { id: string; name: string }
     [Main.SAVE]: SaveData

@@ -151,6 +151,27 @@ test.describe("branding & startup", () => {
         expect(title).toContain("Beacon Worship")
         expect(title).not.toMatch(/loading/i)
     })
+
+    test("no FreeShow wordmark remains in the visible chrome", async () => {
+        // The window title was rebranded earlier, but Top.svelte and ProfileSelector.svelte
+        // each had their own hardcoded <h1>FreeShow</h1>.
+        const brand = window.locator("h1.brand")
+        await expect(brand).toBeVisible()
+        await expect(brand).toHaveText("Beacon Worship")
+
+        // Scoped to the app chrome rather than the whole body: user slide/overlay content
+        // could legitimately contain the word, and that must not fail the gate.
+        const chromeText = await window.locator("div.top").first().innerText()
+        expect(chromeText, "the top bar should not say FreeShow").not.toContain("FreeShow")
+    })
+
+    test("drawer tabs render emoji icons", async () => {
+        await ensureDrawerOpen(window)
+        const emojis = window.locator(`${DRAWER_TABS} .emoji-icon`)
+        // nine tabs, each with one emoji glyph
+        await expect(emojis).toHaveCount(9)
+        await expect(emojis.first()).not.toHaveText("")
+    })
 })
 
 test.describe("hymn selection", () => {
@@ -177,6 +198,48 @@ test.describe("hymn selection", () => {
         await expect(search).toHaveValue("108")
 
         await search.fill("")
+    })
+
+    test("hymn search sits above the hymn list, not in the left navigation", async () => {
+        await openTab(window, "hymns")
+
+        const toolbarSearch = window.locator("input.hymn-search-input")
+        await expect(toolbarSearch).toBeVisible()
+        await expect(toolbarSearch).toHaveAttribute("placeholder", /hymn/i)
+
+        // the toolbar must be horizontally over the list, and vertically above it
+        const list = window.locator(".hymns-panel .column")
+        await expect(list).toBeVisible()
+
+        const searchBox = (await toolbarSearch.boundingBox())!
+        const listBox = (await list.boundingBox())!
+        expect(searchBox.y + searchBox.height, "search should be above the list").toBeLessThanOrEqual(listBox.y + 2)
+        expect(searchBox.x, "search should start at the list, not in the nav column").toBeGreaterThanOrEqual(listBox.x - 2)
+
+        // the old navigation search box is gone
+        await expect(window.locator(".hymn-search")).toHaveCount(0)
+    })
+
+    test("hymn search mirrors into the drawer search", async () => {
+        await openTab(window, "hymns")
+
+        const toolbarSearch = window.locator("input.hymn-search-input")
+        await toolbarSearch.fill("108")
+        await expect(window.locator("input.drawer_search")).toHaveValue("108")
+
+        await toolbarSearch.fill("")
+        await expect(window.locator("input.drawer_search")).toHaveValue("")
+    })
+
+    test("Hymns tab offers Load folder", async () => {
+        await openTab(window, "hymns")
+
+        const loadFolder = window.locator("button.load-folder")
+        await expect(loadFolder).toBeVisible()
+        await expect(loadFolder).toBeEnabled()
+        await expect(loadFolder).toHaveAttribute("title", /folder/i)
+        // deliberately not clicked: it opens a native OS folder dialog that Playwright
+        // cannot drive, which would hang the suite.
     })
 })
 
