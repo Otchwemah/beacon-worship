@@ -23,6 +23,8 @@
 
     $: id = show.id
     $: number = getHymnNumber(show)
+    // Beacon Worship: the thumbnail is ALWAYS the first slide. PowerPoint's embedded
+    // docProps/thumbnail.* is often a blank white frame, so it is only a last resort.
     $: storedThumbnail = show?.thumbnail || $shows[id]?.thumbnail || ""
 
     let elem: HTMLButtonElement
@@ -48,12 +50,15 @@
     })
 
     function requestPreview() {
-        if (previewLoadRequested || storedThumbnail || $showsCache[id]) return
+        // no storedThumbnail short-circuit: the first slide always wins, so the deck must be
+        // loaded even when the .pptx shipped an embedded preview.
+        if (previewLoadRequested || $showsCache[id]) return
         previewLoadRequested = true
         loadShows([id])
     }
 
-    $: livePreview = !storedThumbnail ? getSlidePreview($showsCache[id]) : null
+    $: livePreview = getSlidePreview($showsCache[id])
+    $: thumbnailPath = livePreview ? "" : storedThumbnail
     $: isLive = findMatchingOut(id, $outputs) !== null
     $: isActive = $activeShow?.id === id
 
@@ -99,10 +104,10 @@
 
 <button bind:this={elem} class="hymn-card" class:active={isActive} class:live={isLive} class:selected on:click={click} on:dblclick={dblclick} on:keydown={keydown} title={show.name} data-hymn-id={id}>
     <div class="thumb">
-        {#if storedThumbnail}
-            <img src={encodeFilePath(storedThumbnail)} alt="" loading="lazy" draggable="false" />
-        {:else if livePreview}
+        {#if livePreview}
             <SlidePreviewBox preview={livePreview} />
+        {:else if thumbnailPath}
+            <img src={encodeFilePath(thumbnailPath)} alt="" loading="lazy" draggable="false" />
         {:else}
             <div class="placeholder">
                 <Icon id="book" size={2} />

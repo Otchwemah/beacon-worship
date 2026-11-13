@@ -259,17 +259,24 @@
     // Fallback for decks with no stored preview (including decks imported before previews
     // were saved): draw the real first slide. Needs the full show, so request it once for
     // this row; the virtualized list keeps that to the rows actually on screen.
+    // Beacon Worship: hymn/deck thumbnails are ALWAYS generated from the first slide.
+    // PowerPoint's embedded docProps/thumbnail.* is frequently a blank white frame (that is
+    // what produced the empty white boxes in the Hymns drawer), so it is only a last resort
+    // for decks whose first slide cannot be rendered at all.
     let previewLoadRequested = false
-    $: if (type === "show" && id && !storedShowThumbnail && !previewLoadRequested && !$showsCache[id]) {
+    $: if (type === "show" && id && !previewLoadRequested && !$showsCache[id]) {
         previewLoadRequested = true
         loadShows([id])
     }
-    $: livePreview = type === "show" && !storedShowThumbnail ? getSlidePreview($showsCache[id]) : null
-    $: hasThumbnailBox = isMedia || !!storedShowThumbnail || !!livePreview
+    $: livePreview = type === "show" ? getSlidePreview($showsCache[id]) : null
+
+    // first slide wins; the stored deck preview is the fallback only
+    $: deckThumbnailPath = livePreview ? "" : storedShowThumbnail
+    $: hasThumbnailBox = isMedia || !!deckThumbnailPath || !!livePreview
 
     $: if (id && isMedia) getThumbnail()
     else {
-        thumbnailPath = storedShowThumbnail
+        thumbnailPath = deckThumbnailPath
         duration = 0
     }
     async function getThumbnail() {

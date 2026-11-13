@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { getFirstSlideId, getSlidePlainText, getSlidePreview } from "./showThumbnail"
+import { getFirstSlideId, getSlidePlainText, getSlidePreview, getPreviewItems } from "./showThumbnail"
 
 const line = (value: string) => ({ align: "", text: [{ value, style: "" }] })
 
@@ -105,5 +105,72 @@ describe("getSlidePreview", () => {
         const empty = makeShow()
         empty.slides.s1 = { settings: {}, items: [] }
         expect(getSlidePreview(empty)).toBeNull()
+    })
+})
+
+describe("getPreviewItems — faithful first-slide rendering", () => {
+    const slide: any = {
+        group: null,
+        color: null,
+        notes: "",
+        settings: {},
+        items: [
+            { id: "a", style: "top:0px;left:0px;width:640px;height:1080px;", align: "text-align: center;", lines: [{ align: "", text: [{ value: "Yijiemɔ", style: "font-size:60px;color:#ffffff;" }] }] },
+            { id: "b", style: "top:0px;left:640px;width:640px;height:1080px;", lines: [{ align: "", text: [{ value: "Line 1", style: "color:#00ff00;" }] }, { align: "", text: [{ value: "Line 2", style: "" }] }] },
+            { id: "img", type: "media", style: "top:0;left:0;width:1920px;height:1080px;", src: "/media/bg.png", fit: "fill" },
+            { id: "vid", type: "media", style: "top:0;left:0;", src: "/media/clip.mp4" },
+            { id: "timer", style: "top:0;left:0;", timer: { id: "t1" } },
+            { id: "cam", style: "top:0;left:0;", device: { id: "cam1", name: "Cam" } }
+        ]
+    }
+
+    it("keeps original positioning and run styling so the thumbnail matches the slide", () => {
+        const items = getPreviewItems(slide)
+        const first = items.find((a) => a.id === "a")!
+        expect(first.style).toContain("left:0px")
+        expect(first.align).toBe("text-align: center;")
+        expect(first.runs[0]).toEqual({ value: "Yijiemɔ", style: "font-size:60px;color:#ffffff;" })
+    })
+
+    it("preserves line breaks between lines", () => {
+        const second = getPreviewItems(slide).find((a) => a.id === "b")!
+        expect(second.runs.map((r) => r.value)).toEqual(["Line 1", "\n", "Line 2"])
+    })
+
+    it("includes image media with its fit", () => {
+        const items = getPreviewItems(slide)
+        expect(items.find((a) => a.id === "img")!.src).toBe("/media/bg.png")
+        expect(items.find((a) => a.id === "img")!.fit).toBe("fill")
+    })
+
+    it("drops a video-only box: it has no static appearance to draw", () => {
+        expect(getPreviewItems(slide).map((a) => a.id)).not.toContain("vid")
+    })
+
+    it("skips timers and live inputs which have no static appearance", () => {
+        const ids = getPreviewItems(slide).map((a) => a.id)
+        expect(ids).not.toContain("timer")
+        expect(ids).not.toContain("cam")
+    })
+
+    it("returns nothing for an empty slide", () => {
+        expect(getPreviewItems(null)).toEqual([])
+        expect(getPreviewItems({ items: [] } as any)).toEqual([])
+    })
+
+    it("getSlidePreview exposes the canvas size and items", () => {
+        const show: any = { slides: { s1: slide }, layouts: { l1: { slides: [{ id: "s1" }] } }, settings: { activeLayout: "l1" } }
+        const preview = getSlidePreview(show)!
+        expect(preview.width).toBe(1920)
+        expect(preview.height).toBe(1080)
+        expect(preview.items.length).toBeGreaterThan(0)
+    })
+
+    it("honours a custom slide resolution", () => {
+        const custom: any = { ...slide, settings: { resolution: { width: 1280, height: 720 } } }
+        const show: any = { slides: { s1: custom }, layouts: { l1: { slides: [{ id: "s1" }] } }, settings: { activeLayout: "l1" } }
+        const preview = getSlidePreview(show)!
+        expect(preview.width).toBe(1280)
+        expect(preview.height).toBe(720)
     })
 })
