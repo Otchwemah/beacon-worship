@@ -82,7 +82,12 @@ export function convertPowerpoint(files: any[], options: { categoryName?: string
                     items: slide.items
                 }
 
-                const layoutData = { transition: { type: "none", duration: 0, easing: "linear" } as const }
+                // Beacon Worship: do NOT stamp a transition here. output.ts getOutputTransitions()
+                // treats any truthy transition.type as an override, so the old
+                // { type: "none", duration: 0 } permanently disabled transitions on every hymn
+                // slide and made the global/style transition setting look broken.
+                // Leaving it unset lets the deck inherit the operator's transition.
+                const layoutData = {}
 
                 if (!firstSlideId) {
                     firstSlideId = id

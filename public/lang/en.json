@@ -445,7 +445,8 @@
         "importing": "Importing hymn decks…",
         "folder_empty": "No PowerPoint files found in that folder",
         "folder_truncated": "Folder has more than 2000 decks — imported the first 2000",
-        "count_hint": "Hymns shown / total in this hymn book"
+        "count_hint": "Hymns shown / total in this hymn book",
+        "transitions_repaired": "Hymn slide transitions restored"
     },
     "tabs": {
         "shows": "Shows",

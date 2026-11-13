@@ -3,6 +3,7 @@ import type { ContentProviderId } from "../../electron/contentProviders/base/typ
 import { OUTPUT, STARTUP } from "../../types/Channels"
 import { Main } from "../../types/IPC/Main"
 import { checkStartupActions } from "../components/actions/actions"
+import { repairImportedHymnTransitions } from "../components/drawer/hymns/hymnTransitionsMigration"
 import { syncIcsCalendars } from "../components/drawer/calendar/calendars"
 import { getTimeFromInterval } from "../components/helpers/time"
 import { requestMain, requestMainMultiple, sendMain, sendMainMultiple } from "../IPC/main"
@@ -72,6 +73,13 @@ async function startupMain() {
 
     storeSubscriber()
     remoteListen()
+
+    // Beacon Worship: repair hymn decks imported before the transition fix. Deferred so it
+    // never delays the window becoming usable, and after storeSubscriber() so the normal
+    // save path persists the repaired layouts.
+    setTimeout(() => {
+        repairImportedHymnTransitions().catch((err) => console.error("Hymn transition repair failed", err))
+    }, 4000)
 
     const hasProfiles = Object.keys(get(profiles)).filter((a) => a !== "admin").length > 0
     if (!hasProfiles || get(activeProfile) !== null) checkStartupActions()

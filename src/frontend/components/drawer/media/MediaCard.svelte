@@ -4,7 +4,7 @@
     import type { MediaStyle } from "../../../../types/Main"
     import type { ShowType } from "../../../../types/Show"
     import { addProjectItem } from "../../../converters/project"
-    import { activeShow, customMessageCredits, media, mediaOptions, mediaTags, outLocked, outputs, photoApiCredits, special, styles } from "../../../stores"
+    import { activePage, activeShow, customMessageCredits, media, mediaOptions, mediaTags, outLocked, outputs, photoApiCredits, special, styles } from "../../../stores"
     import { translateText } from "../../../utils/language"
     import { getKey } from "../../../values/keys"
     import Icon from "../../helpers/Icon.svelte"
@@ -109,6 +109,16 @@
         // }, 200)
     }
 
+    // Beacon Worship: mirror the media into the Show panel preview. Does not touch the live
+    // output, and does not switch away from Edit/Stage if the operator is working there.
+    function openMediaPreview() {
+        if (!path) return
+
+        activeShow.set({ id: path, name: displayName || name, type: type === "video" ? "video" : "image" })
+        // don't yank the operator out of the slide editor
+        if ($activePage !== "edit") activePage.set("show")
+    }
+
     let wait = false
     function click(e: any) {
         if (e.ctrlKey || e.metaKey || e.shiftKey || $outLocked || wait || iconClicked) return
@@ -120,6 +130,11 @@
         }, 800)
 
         const activeOutputs = getAllActiveOutputs()
+
+        // Beacon Worship: selecting a media file also opens it in the Show panel, so the
+        // operator can see what they picked instead of only finding out on the live output.
+        // Show.svelte already renders <MediaPreview /> for image/video/player active shows.
+        openMediaPreview()
 
         const isActive = activeOutputs.some((a) => (a.out?.background?.path || a.out?.background?.id) === path)
         if (isActive) {
