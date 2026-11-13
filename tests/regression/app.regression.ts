@@ -339,3 +339,31 @@ test.describe("live / audience outputs", () => {
         if (/\bon\b/.test(after) !== /\bon\b/.test(before)) await toggle.click()
     })
 })
+
+test.describe("live override policy", () => {
+    test("Settings exposes the live-override toggle, on by default", async () => {
+        await dismissPopups(window)
+        await clickStable(window, "#settings")
+
+        // General is the first settings tab and the default one. The checkbox itself is
+        // visually hidden, so assert on the role="switch" wrapper's aria-checked.
+        const toggle = window.locator('div.togglefield:has(#liveOverride)')
+        await expect(toggle).toBeVisible()
+        await expect(toggle).toHaveAttribute("aria-checked", "true")
+        await expect(window.locator("#liveOverride")).toBeChecked()
+
+        // back to the Show page so later specs start from a known place
+        await clickStable(window, "#show")
+    })
+
+    test("clearing all still works and leaves the control window intact", async () => {
+        await dismissPopups(window)
+
+        // Escape is the global clear. With the override policy in place the clear helpers
+        // are shared, so this guards against the refactor breaking the manual clear path.
+        await window.locator("body").click({ position: { x: 5, y: 5 } })
+        await window.keyboard.press("Escape")
+
+        await expect(window.locator(DRAWER_TABS)).toBeVisible()
+    })
+})

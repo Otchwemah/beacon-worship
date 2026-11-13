@@ -1526,7 +1526,10 @@
         "auto": "Auto",
         "section_trigger_action": "Trigger action when navigating presentation to a section",
         "rss": "RSS",
-        "txt": "TXT"
+        "txt": "TXT",
+        "live_output": "Live output",
+        "live_override": "New live content clears the previous output",
+        "live_override_hint": "When you send a hymn, scripture or media item live, it replaces whatever was on screen. Overlays stay on top and audio keeps playing. Turn this off to layer content instead."
     },
     "gpu": {
         "no_acceleration": "Graphics acceleration is unavailable",

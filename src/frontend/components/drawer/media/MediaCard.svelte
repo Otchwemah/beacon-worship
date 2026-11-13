@@ -4,7 +4,7 @@
     import type { MediaStyle } from "../../../../types/Main"
     import type { ShowType } from "../../../../types/Show"
     import { addProjectItem } from "../../../converters/project"
-    import { activeShow, customMessageCredits, media, mediaOptions, mediaTags, outLocked, outputs, photoApiCredits, styles } from "../../../stores"
+    import { activeShow, customMessageCredits, media, mediaOptions, mediaTags, outLocked, outputs, photoApiCredits, special, styles } from "../../../stores"
     import { translateText } from "../../../utils/language"
     import { getKey } from "../../../values/keys"
     import Icon from "../../helpers/Icon.svelte"
@@ -12,6 +12,8 @@
     import { findMatchingOut, getAllActiveOutputs, getFirstActiveOutput, setOutput } from "../../helpers/output"
     import Button from "../../inputs/Button.svelte"
     import { clearBackground, clearSlide } from "../../output/clear"
+    import { prepareLiveOverride } from "../../output/liveOverride"
+    import { isLiveOverrideEnabled } from "../../output/liveOverridePolicy"
     import SelectElem from "../../system/SelectElem.svelte"
     import Card from "../Card.svelte"
     import MediaLoader from "./MediaLoader.svelte"
@@ -128,7 +130,11 @@
         let videoType = getMediaLayerType(path, mediaStyle)
         let loop = contentProvider || videoType === "foreground" ? false : true
         let muted = videoType === "background" ? true : false
-        if (videoType === "foreground") clearSlide()
+
+        // Beacon Worship: sending media live replaces whatever was live. Overlays and audio
+        // survive. Only on the go-live path — the toggle-off branch above already returned.
+        if (isLiveOverrideEnabled($special)) prepareLiveOverride()
+        else if (videoType === "foreground") clearSlide()
 
         // get style per output
         activeOutputs.forEach((output) => {

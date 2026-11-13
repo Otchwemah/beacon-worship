@@ -23,6 +23,7 @@ import { history } from "../../helpers/history"
 import { getMediaStyle } from "../../helpers/media"
 import { getAllNormalOutputs, getFirstActiveOutput, setOutput } from "../../helpers/output"
 import { checkName } from "../../helpers/show"
+import { prepareLiveOverride } from "../../output/liveOverride"
 
 const SCRIPTURE_API_URL = "https://api.churchapps.org/content/bibles"
 
@@ -341,6 +342,11 @@ export async function playScripture() {
     const categoryId = get(drawerTabsData).scripture?.activeSubTab || ""
 
     const [previousSlides, nextSlides] = await Promise.all([getPreviousSlides(), getNextSlides()])
+
+    // Beacon Worship: presenting scripture replaces whatever was live (previous hymn slide,
+    // media background, scene). Overlays and audio are kept. Done after all async work so a
+    // slow Bible load cannot blank the output while it resolves.
+    prepareLiveOverride()
 
     setOutput("slide", { id: "temp", categoryId, tempItems, previousSlides, nextSlides, attributionString, translations: biblesContent.length, settings, customDynamicValues: slideDynamicValues[0] })
 

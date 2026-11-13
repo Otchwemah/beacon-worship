@@ -68,3 +68,18 @@
 
 <Title label="hymns.background" icon="book" />
 <HymnBackground />
+
+<!-- LIVE OUTPUT -->
+
+<Title label="settings.live_output" icon="outputs" />
+<MaterialToggleSwitch id="liveOverride" label="settings.live_override" checked={$special.liveOverride !== false} defaultValue={true} on:change={(e) => updateSpecial(e.detail, "liveOverride", true)} />
+<p class="setting-hint">{translateText("settings.live_override_hint", $dictionary)}</p>
+
+<style>
+    .setting-hint {
+        margin: 2px 0 10px;
+        font-size: 0.8em;
+        opacity: 0.6;
+        line-height: 1.45;
+    }
+</style>

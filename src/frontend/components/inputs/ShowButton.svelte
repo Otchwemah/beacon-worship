@@ -13,6 +13,7 @@
     import { loadShows } from "../helpers/setShow"
     import { checkName, getLayoutRef } from "../helpers/show"
     import { swichProjectItem, updateOut } from "../helpers/showActions"
+    import { prepareLiveOverride, shouldOverrideForType } from "../output/liveOverride"
     import T from "../helpers/T.svelte"
     import { joinTime, secondsToTime } from "../helpers/time"
     import { clearBackground, clearSlide } from "../output/clear"
@@ -151,14 +152,24 @@
         let outputId: string = getActiveOutputs($outputs, false, true, true)[0]
         let currentOutput = $outputs[outputId] || {}
 
+        // Beacon Worship: going live replaces whatever was live. Overlays, effects and audio
+        // are exempt (they layer on top / keep playing), so they must not trigger a clear.
+        // Alt still bypasses the extra behaviour, matching updateOut()'s `extra` flag.
+        // NOTE: each branch calls this AFTER its own early-return guards — clearing before a
+        // guard that returns would blank the output without putting anything back.
+        const overrideLive = !e.detail.alt && shouldOverrideForType(type)
+
         if (type === "show" && $showsCache[id]?.settings && $showsCache[id].layouts[$showsCache[id].settings.activeLayout]?.slides?.length) {
             let layoutRef = getLayoutRef()
             let firstEnabledIndex = layoutRef.findIndex((a) => !a.data.disabled)
-            updateOut("active", firstEnabledIndex, layoutRef, !e.detail.alt)
 
+            // already live at this exact slide: no-op, and crucially do NOT clear first
             let slide = currentOutput.out?.slide || null
             if (slide?.id === id && slide?.index === firstEnabledIndex && slide?.layout === $showsCache[id].settings.activeLayout) return
 
+            if (overrideLive) prepareLiveOverride()
+
+            updateOut("active", firstEnabledIndex, layoutRef, !e.detail.alt)
             setOutput("slide", { id, layout: $showsCache[id].settings.activeLayout, index: firstEnabledIndex })
         } else if (type === "image" || type === "video") {
             let outputStyle = $styles[currentOutput.style || ""]
@@ -174,8 +185,9 @@
 
             let out = { path: located.path, muted: shouldBeMuted, loop: shouldLoop, startAt: 0, type, ...mediaStyle }
 
+            if (overrideLive) prepareLiveOverride()
             // clear slide
-            if (videoType === "foreground" || (videoType !== "background" && (type === "image" || !shouldLoop))) clearSlide()
+            else if (videoType === "foreground" || (videoType !== "background" && (type === "image" || !shouldLoop))) clearSlide()
 
             setOutput("background", out)
         } else if (type === "pdf") {
@@ -187,6 +199,9 @@
             const pages = pdfDoc.numPages
 
             let name = show.name || removeExtension(getFileName(id))
+
+            if (overrideLive) prepareLiveOverride()
+
             setOutput("slide", { type: "pdf", id, page: 0, pages, name })
             clearBackground()
 
@@ -194,7 +209,10 @@
         } else if (type === "audio") AudioPlayer.start(id, { name: show.name })
         else if (type === "overlay") setOutput("overlays", show.id, false, "", true)
         else if (type === "effect") setOutput("effects", show.id, false, "", true)
-        else if (type === "player") setOutput("background", { id, type: "player" })
+        else if (type === "player") {
+            if (overrideLive) prepareLiveOverride()
+            setOutput("background", { id, type: "player" })
+        }
     }
 
     function rename(e: any) {
