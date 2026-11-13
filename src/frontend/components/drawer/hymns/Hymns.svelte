@@ -20,9 +20,9 @@
     // uses, so hymns behave exactly like the rest of the app (no separate live path).
 
     export let active: string | null = null
-    export let searchValue = ""
 
-    // dedicated Hymns search bar (in the Hymns navigation). Number matching applies only
+    // dedicated Hymns search bar (in the Hymns navigation), mirrored by the top drawer search
+    // while this tab is active. Number matching applies only
     // when the query is numeric; otherwise it matches deck names. See searchHymnDecks().
     $: query = ($hymnSearchValue || "").trim()
     $: isSearching = query.length > 0

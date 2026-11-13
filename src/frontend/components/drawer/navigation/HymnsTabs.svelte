@@ -9,6 +9,7 @@
 
     // Beacon Worship — Hymns left navigation: "All hymns" plus one entry per hymn book
     // (category) that actually contains hymn decks, and a dedicated hymn search bar.
+    // While the Hymns tab is active, this bar and the top drawer search mirror the same query.
     // The saved hymn background now lives in Settings → General. Categories are managed
     // in the Shows tab; this panel only navigates and searches.
 

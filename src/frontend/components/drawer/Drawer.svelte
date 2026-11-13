@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onDestroy } from "svelte"
     import type { DrawerTabIds } from "../../../types/Tabs"
-    import { activeDrawerTab, activeEdit, activePage, activePopup, activeProject, activeShow, activeTriggerFunction, dictionary, drawer, drawerOpenedInEdit, drawerTabsData, focusMode, labelsDisabled, mediaOptions, os, previousShow, projects, quickTextCache, scriptureSettings, selected, showsCache } from "../../stores"
+    import { activeDrawerTab, activeEdit, activePage, activePopup, activeProject, activeShow, activeTriggerFunction, dictionary, drawer, drawerOpenedInEdit, drawerTabsData, focusMode, hymnSearchValue, labelsDisabled, mediaOptions, os, previousShow, projects, quickTextCache, scriptureSettings, selected, showsCache } from "../../stores"
     import { DEFAULT_DRAWER_HEIGHT, DEFAULT_WIDTH, MENU_BAR_HEIGHT } from "../../utils/common"
     import { startResizing, stopResizing } from "../../utils/cursor"
     import { translateText } from "../../utils/language"
@@ -24,6 +24,7 @@
     import MaterialButton from "../inputs/MaterialButton.svelte"
     import Resizeable from "../system/Resizeable.svelte"
     import Info from "./info/Info.svelte"
+    import { normalizeHymnSearchQuery, shouldMirrorDrawerSearchToHymns } from "./hymns/hymnSearchMirror"
 
     const minHeight = 40
     const topHeight = 40
@@ -147,10 +148,13 @@
     }
 
     let searchValue = ""
-    $: if ($activeDrawerTab) searchValue = ""
-    // single space normalization for search input
-    const removeWhitespace = (v: string) => v.trim().replace(/\s+/g, " ")
-    $: searchValue = removeWhitespace(searchValue) + (searchValue.endsWith(" ") ? " " : "")
+    // Beacon Worship: while the Hymns tab is active, the top drawer search and the dedicated
+    // Hymns navigation search bar are two-way mirrors of the same query. Other tabs keep the
+    // existing transient, per-tab drawer search behaviour.
+    $: if ($activeDrawerTab && $activeDrawerTab !== "hymns") searchValue = ""
+    $: if ($activeDrawerTab === "hymns") searchValue = $hymnSearchValue
+    $: searchValue = normalizeHymnSearchQuery(searchValue)
+    $: if (shouldMirrorDrawerSearchToHymns($activeDrawerTab, searchValue, $hymnSearchValue)) hymnSearchValue.set(searchValue)
     function search() {
         if (storeHeight === null && $drawer.height > minHeight) return
 
@@ -284,7 +288,7 @@
             {/each}
         </span>
 
-        <input bind:this={searchElem} class:hidden={!searchActive && !searchValue.length} class="search edit drawer_search" type="text" placeholder={translateText("main.search...", $dictionary)} bind:value={searchValue} on:input={search} on:keydown={searchKeydown} use:selectTextOnFocus />
+        <input bind:this={searchElem} class:hidden={!searchActive && !searchValue.length} class="search edit drawer_search" type="text" placeholder={translateText($activeDrawerTab === "hymns" ? "hymns.search_placeholder" : "main.search...", $dictionary)} bind:value={searchValue} on:input={search} on:keydown={searchKeydown} use:selectTextOnFocus />
         {#if !searchActive && !searchValue.length}
             <Button class="search" style="border-bottom: 2px solid var(--secondary);" on:click={() => (searchActive = true)} title={translateText("tabs.search_tip [Ctrl+F]")} bold={false}>
                 <Icon id="search" size={1.4} white right={!$labelsDisabled && !$focusMode} />

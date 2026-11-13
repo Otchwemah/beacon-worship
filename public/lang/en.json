@@ -427,7 +427,7 @@
         "import": "Import hymns",
         "search": "Search",
         "search_placeholder": "Search hymns…",
-        "search_hint": "Type a number to search by hymn number, or text to search by title.",
+        "search_hint": "Type a number to search by hymn number, or text to search by title. Mirrors the top drawer search.",
         "background": "Background",
         "background_label": "Hymn background",
         "background_hint": "Replaces the background on every hymn slide. Also applied to newly imported hymn decks.",

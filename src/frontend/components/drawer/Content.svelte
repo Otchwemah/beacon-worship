@@ -63,7 +63,7 @@
     {:else if id === "templates"}
         <Templates {active} {searchValue} />
     {:else if id === "hymns"}
-        <Hymns {active} {searchValue} />
+        <Hymns {active} />
     {:else if id === "scripture"}
         <Scripture {active} bind:searchValue />
     {:else if id === "calendar"}
