@@ -451,3 +451,100 @@ test.describe("live override policy", () => {
         await expect(window.locator(DRAWER_TABS)).toBeVisible()
     })
 })
+
+test.describe("song library (carols & hymns)", () => {
+    test("the Shows tab offers the built-in carols & hymns library", async () => {
+        await openTab(window, "shows")
+
+        // the control lives in the LEFT panel, mirroring the Hymns "Load folder" placement
+        const button = window.locator(".song-library button").first()
+        await expect(button).toBeVisible()
+
+        await button.click()
+        const panel = window.locator(".song-library .panel")
+        await expect(panel).toBeVisible()
+
+        // both collections are offered with a count
+        await expect(panel.locator("label.row")).toHaveCount(2)
+        await expect(panel).toContainText(/Christmas carols/i)
+        await expect(panel).toContainText(/Classic hymns/i)
+    })
+
+    test("installing adds real, presentable songs to the Shows list", async () => {
+        await openTab(window, "shows")
+
+        const opener = window.locator(".song-library button").first()
+        await expect(opener).toBeVisible()
+        if (!(await window.locator(".song-library .panel").isVisible())) await opener.click()
+
+        const install = window.locator(".song-library .panel button").last()
+        test.skip(await install.isDisabled(), "Library already installed on this profile")
+
+        await install.click()
+
+        // the panel closes and the two new categories appear in the left navigation
+        await expect(window.locator(".song-library .panel")).toBeHidden()
+        await expect(window.locator("span.tabs:has(#hymns)")).toBeVisible()
+        await expect(window.locator(".drawer")).toContainText(/Christmas Carols|Classic Hymns/i)
+    })
+})
+
+test.describe("hymn thumbnails come from the first slide", () => {
+    test("a hymn tile renders a slide canvas rather than an empty white box", async () => {
+        await openTab(window, "hymns")
+
+        const cards = window.locator(".hymn-card")
+        test.skip((await cards.count()) === 0, "No hymns imported on this runner")
+
+        const first = cards.first()
+        await expect(first).toBeVisible()
+
+        // the thumbnail area must exist and must not be zero-height
+        const thumb = first.locator(".thumb").first()
+        await expect(thumb).toBeVisible()
+        const box = await thumb.boundingBox()
+        expect(box).not.toBeNull()
+        expect(box!.height).toBeGreaterThan(10)
+        expect(box!.width).toBeGreaterThan(10)
+
+        // either a scaled first-slide canvas, or a stored image, or the book fallback icon —
+        // but never nothing at all
+        const hasCanvas = await thumb.locator(".slide-preview").count()
+        const hasImage = await thumb.locator("img").count()
+        const hasFallback = await thumb.locator("svg").count()
+        expect(hasCanvas + hasImage + hasFallback).toBeGreaterThan(0)
+    })
+})
+
+test.describe("media click zones", () => {
+    test("the Media tab explains the edge/centre click behaviour", async () => {
+        await openTab(window, "media")
+
+        // the hint only shows in a provider section that has the zoom control
+        const hint = window.locator(".click-zones-hint")
+        test.skip((await hint.count()) === 0, "No media provider section active on this runner")
+
+        await expect(hint.first()).toContainText(/edge/i)
+        await expect(hint.first()).toContainText(/middle/i)
+    })
+
+    test("clicking the surround of a media tile does not change the live output", async () => {
+        await openTab(window, "media")
+
+        const card = window.locator(".card").first()
+        test.skip((await card.count()) === 0, "No media files on this runner")
+
+        const box = await card.boundingBox()
+        test.skip(!box, "Media tile is not measurable")
+
+        const clearButton = window.locator("#output_window_button")
+        const before = (await clearButton.getAttribute("class")) || ""
+
+        // 3px in from the left edge = the preview-only surround
+        await card.click({ position: { x: 3, y: Math.round(box!.height / 2) } })
+
+        // the control window survives and the output toggle state is unchanged
+        await expect(window.locator(DRAWER_TABS)).toBeVisible()
+        expect(((await clearButton.getAttribute("class")) || "")).toBe(before)
+    })
+})

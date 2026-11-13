@@ -1902,5 +1902,18 @@
         "confidence_highest": "If confident",
         "confidence_high": "If high confidence",
         "confidence_medium": "If medium confidence"
+    },
+    "songs": {
+        "add_library": "Add carols & hymns",
+        "add_library_hint": "Adds built-in Christmas carols and classic hymns to this Songs list.",
+        "library_title": "Carols & Hymns",
+        "library_hint": "Public-domain songs, ready to present. Existing songs are never duplicated.",
+        "library_carols": "Christmas carols",
+        "library_hymns": "Classic hymns",
+        "library_available": "{number} new",
+        "library_none": "All already added",
+        "library_install": "Add to Songs",
+        "library_installed": "Carols and hymns added to Shows",
+        "library_already_installed": "All carols and hymns are already in your Songs list"
     }
 }
