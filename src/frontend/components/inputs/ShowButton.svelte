@@ -19,6 +19,8 @@
     import { getTextSnippet, highlightText } from "../quicksearch/searchHighlight"
     import HiddenInput from "./HiddenInput.svelte"
     import MaterialButton from "./MaterialButton.svelte"
+    import SlidePreviewBox from "./SlidePreviewBox.svelte"
+    import { getSlidePreview } from "./showThumbnail"
 
     export let id: string
     export let show: any // ShowList | ShowRef
@@ -242,7 +244,17 @@
     // Shows rows show the actual deck instead of a generic icon. Read it from the trimmed list
     // entry first (no full show load needed), falling back to the loaded show.
     $: storedShowThumbnail = type === "show" ? show?.thumbnail || $shows[show?.id || id]?.thumbnail || "" : ""
-    $: hasThumbnailBox = isMedia || !!storedShowThumbnail
+
+    // Fallback for decks with no stored preview (including decks imported before previews
+    // were saved): draw the real first slide. Needs the full show, so request it once for
+    // this row; the virtualized list keeps that to the rows actually on screen.
+    let previewLoadRequested = false
+    $: if (type === "show" && id && !storedShowThumbnail && !previewLoadRequested && !$showsCache[id]) {
+        previewLoadRequested = true
+        loadShows([id])
+    }
+    $: livePreview = type === "show" && !storedShowThumbnail ? getSlidePreview($showsCache[id]) : null
+    $: hasThumbnailBox = isMedia || !!storedShowThumbnail || !!livePreview
 
     $: if (id && isMedia) getThumbnail()
     else {
@@ -291,6 +303,8 @@
                         <Icon id="swap" white right />
                     {:else if thumbnailPath}
                         <img class="thumbnail" src={encodeFilePath(thumbnailPath)} alt="thumbnail" style={mediaStyleString} />
+                    {:else if livePreview}
+                        <SlidePreviewBox preview={livePreview} />
                     {:else if icon || show.locked}
                         <Icon id={show.played ? "check" : iconID ? iconID : show.locked ? "locked" : "noIcon"} custom={!show.played && custom} box={iconID === "ppt" ? 50 : 24} color={show.played ? "#97ff95" : customIconsColors[iconID || ""] || ""} white right={!isMedia} boxed={!show.locked} />
                     {/if}
