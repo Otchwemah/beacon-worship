@@ -24,8 +24,11 @@ export default defineConfig({
     // Retry only on CI to reduce transient failures.
     retries: process.env.CI ? 2 : 0,
 
-    // list always, plus an HTML report on CI (uploadable as an artifact)
-    reporter: process.env.CI ? [["list"], ["html", { outputFolder: "../../test-output/playwright-report", open: "never" }]] : [["list"]],
+    // list always; on CI also emit JSON (consumed by scripts/testing/regressionDigest.js to
+    // print a plain-text failure digest into the job summary) and an HTML report artifact.
+    reporter: process.env.CI
+        ? [["list"], ["json", { outputFile: "../../test-output/results.json" }], ["html", { outputFolder: "../../test-output/playwright-report", open: "never" }]]
+        : [["list"]],
 
     use: {
         // Collect diagnostics for CI failures.

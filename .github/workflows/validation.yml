@@ -212,6 +212,14 @@ jobs:
               env:
                   NODE_OPTIONS: --max-old-space-size=4096
 
+            # Print failing spec names + first error lines as plain text into the log AND the
+            # job summary, so the failure can be read from a screenshot of the Summary page
+            # without downloading/unzipping the report artifact.
+            - name: Regression failure digest
+              if: always()
+              shell: bash
+              run: node scripts/testing/regressionDigest.js
+
             - name: Report regression outcome
               if: always()
               shell: bash
