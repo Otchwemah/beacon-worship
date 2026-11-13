@@ -21,15 +21,23 @@ const appRoot = path.resolve(__dirname, "..", "..")
 let app: ElectronApplication
 let window: Page
 
-// The app can show a loading/splash window first, so wait for the window that actually
-// contains the drawer instead of blindly taking firstWindow().
+// The app can show a loading/splash window first, so wait for the real control window
+// instead of blindly taking firstWindow(). Accept either the drawer tab bar or the
+// branded title, because the drawer itself can be collapsed.
 async function waitForMainWindow(application: ElectronApplication, timeoutMs = 90_000): Promise<Page> {
     const deadline = Date.now() + timeoutMs
+    const seen: string[] = []
 
     while (Date.now() < deadline) {
         for (const candidate of application.windows()) {
             try {
+                if (await candidate.locator("span.tabs").count()) return candidate
                 if (await candidate.locator("#hymns").count()) return candidate
+
+                const title = await candidate.title()
+                const url = candidate.url()
+                seen.push(`${title || "(untitled)"} :: ${url}`)
+                if (/beacon worship/i.test(title) && (await candidate.locator("body").count())) return candidate
             } catch {
                 // window may still be navigating; keep polling
             }
@@ -37,7 +45,27 @@ async function waitForMainWindow(application: ElectronApplication, timeoutMs = 9
         await new Promise((resolve) => setTimeout(resolve, 500))
     }
 
-    throw new Error("Main window with drawer tabs never appeared (is the app built? run `npm run build`)")
+    // Dump what actually rendered so a CI failure is diagnosable from the log alone.
+    const diagnostics: string[] = [`No control window after ${timeoutMs}ms. Windows seen: ${seen.length ? [...new Set(seen)].join(" | ") : "(none)"}`]
+    for (const candidate of application.windows()) {
+        try {
+            const body = (await candidate.locator("body").innerText().catch(() => "")) || ""
+            diagnostics.push(`--- ${candidate.url()} ---\n${body.slice(0, 1500)}`)
+            await candidate.screenshot({ path: `test-output/artifacts/startup-${diagnostics.length}.png` }).catch(() => {})
+        } catch {
+            // ignore windows that closed while diagnosing
+        }
+    }
+
+    throw new Error(`${diagnostics.join("\n")}\n\nIs the app built? Run \`npm run build\` first.`)
+}
+
+// Make sure the drawer is expanded before interacting with its tabs.
+async function ensureDrawerOpen(page: Page) {
+    if (await page.locator("span.tabs").count()) return
+    // Ctrl+D toggles the drawer in FreeShow; fall back to clicking the drawer tab strip.
+    await page.keyboard.press("Control+d")
+    await page.locator("span.tabs").first().waitFor({ state: "attached", timeout: 15_000 })
 }
 
 test.beforeAll(async () => {
@@ -50,6 +78,7 @@ test.beforeAll(async () => {
 
     window = await waitForMainWindow(app)
     await window.waitForLoadState("domcontentloaded")
+    await ensureDrawerOpen(window)
 })
 
 test.afterAll(async () => {
@@ -58,7 +87,7 @@ test.afterAll(async () => {
 
 test.describe("branding & startup", () => {
     test("main window opens with Beacon Worship branding", async () => {
-        await expect(window.locator("#hymns")).toBeVisible()
+        await expect(window.locator("span.tabs")).toBeVisible()
         expect(await window.title()).toContain("Beacon Worship")
     })
 })
@@ -105,12 +134,22 @@ test.describe("keyboard controls", () => {
     })
 
     test("Ctrl+<n> switches drawer tabs", async () => {
-        // tabs advertise [Ctrl+{index}] in their tooltip; shows is the first tab
-        await window.keyboard.press("Control+1")
-        await expect(window.locator("#shows")).toHaveClass(/isActive/)
+        await ensureDrawerOpen(window)
 
-        await window.keyboard.press("Control+2")
-        await expect(window.locator("#scripture")).toHaveClass(/isActive/)
+        // Derive each tab's shortcut from the rendered order rather than hardcoding it:
+        // values/tabs.ts orders them shows, media, audio, overlays, templates, scripture,
+        // calendar, functions, hymns - so scripture is Ctrl+6, NOT Ctrl+2. Disabled or
+        // hidden tabs would also shift the indices.
+        const rendered: string[] = await window.locator("span.tabs > button").evaluateAll((elements) => elements.map((element) => (element as HTMLElement).id))
+        expect(rendered.length, "drawer tab buttons should be rendered").toBeGreaterThan(0)
+
+        for (const id of ["shows", "scripture", "hymns"]) {
+            const index = rendered.indexOf(id)
+            expect(index, `tab '${id}' should be present in the tab bar`).toBeGreaterThanOrEqual(0)
+
+            await window.keyboard.press(`Control+${index + 1}`)
+            await expect(window.locator(`#${id}`)).toHaveClass(/isActive/)
+        }
     })
 })
 

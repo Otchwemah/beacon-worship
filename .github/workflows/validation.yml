@@ -203,16 +203,41 @@ jobs:
 
             # No `playwright install` needed: _electron.launch() drives the Electron binary
             # from node_modules, not a Playwright-downloaded browser.
+            # `continue-on-error` on the job means a red run can still look green overall, so
+            # capture the outcome explicitly and surface it in the run summary.
             - name: Run regression checks
+              id: regression
+              continue-on-error: true
               run: npm run test:regression
               env:
                   NODE_OPTIONS: --max-old-space-size=4096
 
+            - name: Report regression outcome
+              if: always()
+              shell: bash
+              run: |
+                  outcome="${{ steps.regression.outcome }}"
+                  echo "### Regression (${{ matrix.os }}): ${outcome}" >> "$GITHUB_STEP_SUMMARY"
+                  if [ "$outcome" != "success" ]; then
+                    echo "" >> "$GITHUB_STEP_SUMMARY"
+                    echo "Specs did not all pass. Download the \`regression-report-${{ matrix.os }}\` artifact for traces, screenshots and video." >> "$GITHUB_STEP_SUMMARY"
+                  fi
+                  echo "regression outcome: ${outcome}"
+
             - name: Upload regression report
               if: always()
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v5
               with:
                   name: regression-report-${{ matrix.os }}
                   path: test-output/
                   retention-days: 14
                   if-no-files-found: ignore
+
+            # Fail the job when the specs failed, so the job badge is truthful. The job-level
+            # continue-on-error keeps the overall run green while this gate is advisory.
+            - name: Mark job failed if regression failed
+              if: steps.regression.outcome != 'success'
+              shell: bash
+              run: |
+                  echo "Regression specs failed on ${{ matrix.os }}"
+                  exit 1
