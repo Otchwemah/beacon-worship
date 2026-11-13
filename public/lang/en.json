@@ -231,7 +231,8 @@
         "media_sync_folder": "Media sync folder",
         "media_sync_folder_tip": "Copy all used media files continuously into one shared folder. Any custom sync provider can be pointed to that folder.",
         "bundle_media_files": "Bundle all media files",
-        "bundle_media_files_tip": "Copy the media files from all shows and projects into one folder"
+        "bundle_media_files_tip": "Copy the media files from all shows and projects into one folder",
+        "click_zones_hint": "Click the edge to preview · click the middle to go live"
     },
     "audio": {
         "settings": "Audio settings",

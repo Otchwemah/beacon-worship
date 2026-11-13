@@ -8,6 +8,7 @@
     import { activeDrawerTab, activeEdit, activeFocus, activeMediaTagFilter, activePopup, activeShow, audioFolders, cloudSyncData, drawerTabsData, focusMode, labelsDisabled, media, mediaFolders, mediaOptions, openedMediaFolders, outLocked, outputs, popupData, providerConnections, selectAllMedia, selected, sorted, special, styles } from "../../../stores"
     import Icon from "../../helpers/Icon.svelte"
     import T from "../../helpers/T.svelte"
+    import { translateText } from "../../../utils/language"
     import { clone, keysToID, sortFilenames } from "../../helpers/array"
     import { splitPath } from "../../helpers/get"
     import { countFolderMediaItems, getExtension, getFileName, getMediaLayerType, getMediaStyle, getMediaType, isMediaExtension, removeExtension } from "../../helpers/media"
@@ -637,6 +638,10 @@
 
 {#if isProviderSection}
     <FloatingInputs onlyOne>
+        <!-- Beacon Worship: remind the operator which click zone does what -->
+        <span class="click-zones-hint" title={translateText("media.click_zones_hint")}>
+            <T id="media.click_zones_hint" />
+        </span>
         <MaterialZoom columns={$mediaOptions.columns} defaultValue={5} on:change={(e) => mediaOptions.set({ ...$mediaOptions, columns: e.detail })} />
     </FloatingInputs>
 {:else if active === "online"}
@@ -791,5 +796,15 @@
         overflow-x: hidden;
 
         padding-bottom: 60px;
+    }
+
+    .click-zones-hint {
+        max-width: 260px;
+        padding: 0 10px;
+        font-size: 0.72em;
+        line-height: 1.25;
+        opacity: 0.6;
+        text-align: right;
+        align-self: center;
     }
 </style>

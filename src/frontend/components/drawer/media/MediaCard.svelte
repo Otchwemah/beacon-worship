@@ -14,6 +14,7 @@
     import { clearBackground, clearSlide } from "../../output/clear"
     import { prepareLiveOverride } from "../../output/liveOverride"
     import { isLiveOverrideEnabled } from "../../output/liveOverridePolicy"
+    import { zoneFromEvent } from "./mediaClickZone"
     import SelectElem from "../../system/SelectElem.svelte"
     import Card from "../Card.svelte"
     import MediaLoader from "./MediaLoader.svelte"
@@ -129,12 +130,16 @@
             wait = false
         }, 800)
 
-        const activeOutputs = getAllActiveOutputs()
-
-        // Beacon Worship: selecting a media file also opens it in the Show panel, so the
-        // operator can see what they picked instead of only finding out on the live output.
-        // Show.svelte already renders <MediaPreview /> for image/video/player active shows.
+        // Beacon Worship: two single-click zones on a media tile.
+        //   surround (label / padding / border) -> preview in the Show panel only
+        //   middle of the artwork               -> preview AND live output
+        // measure the artwork itself, so the label underneath always counts as "surround"
+        const artwork = (e.target as HTMLElement)?.closest?.(".card") || (e.currentTarget as HTMLElement)?.closest?.(".over") || null
+        const zone = zoneFromEvent(e, artwork)
         openMediaPreview()
+        if (zone === "preview") return
+
+        const activeOutputs = getAllActiveOutputs()
 
         const isActive = activeOutputs.some((a) => (a.out?.background?.path || a.out?.background?.id) === path)
         if (isActive) {
