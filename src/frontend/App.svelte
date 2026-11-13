@@ -18,14 +18,19 @@
     import TooltipManager from "./components/main/TooltipManager.svelte"
     import QuickSearch from "./components/quicksearch/QuickSearch.svelte"
     import Center from "./components/system/Center.svelte"
-    import { activeProfile, activeTimers, closeAd, currentWindow, disabledServers, events, language, loaded, localeDirection, os, outputDisplay, outputs, profiles, theme, themes, timers } from "./stores"
+    import { activeProfile, activeTimers, closeAd, currentWindow, disabledServers, events, language, loaded, localeDirection, os, outputDisplay, outputs, profiles, special, theme, themes, timers } from "./stores"
     import { focusArea, logerror, mainClick, toggleRemoteStream } from "./utils/common"
+    import { shouldApplyLiquidGlass } from "./utils/liquidGlass"
     import { keydown } from "./utils/shortcuts"
     import { startup } from "./utils/startup"
 
     startup()
 
     $: isWindows = !$currentWindow && $os.platform === "win32"
+
+    // Beacon Worship: Liquid Glass styling is default-on but ONLY for the control window.
+    // Output/PDF windows never get the class; the native titlebar/MenuBar is outside <main>.
+    $: liquidGlass = shouldApplyLiquidGlass($currentWindow, $special)
 
     ///// UPDATERS /////
 
@@ -74,7 +79,7 @@
         <MenuBar />
     {/if}
 
-    <main style={globalStyle} class:closeAd={$closeAd} class:background={$currentWindow === "output"}>
+    <main style={globalStyle} class:closeAd={$closeAd} class:background={$currentWindow === "output"} class:bw-control={liquidGlass}>
         <ContextMenu />
         <TooltipManager />
 

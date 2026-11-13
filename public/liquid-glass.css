@@ -1,0 +1,120 @@
+/*
+ * Beacon Worship — Liquid Glass control-interface styling.
+ *
+ * IMPORTANT: every rule is scoped under `main.bw-control`. That class is added ONLY to the
+ * main/control window's <main> element (see App.svelte + utils/liquidGlass.ts). Audience /
+ * output windows and the PDF export window never receive it, and the native titlebar /
+ * Windows MenuBar render outside this <main>, so they are untouched. Media corner rounding
+ * here applies only to in-app previews, never to audience output.
+ *
+ * The layer is theme-aware: it derives translucent surfaces from the active theme's CSS
+ * variables rather than hard-coding colors, so existing themes keep working.
+ */
+
+main.bw-control {
+    --bw-glass-blur: 16px;
+    --bw-glass-radius: 12px;
+    --bw-glass-radius-sm: 8px;
+    --bw-media-radius: 10px;
+    --bw-glass-border: rgb(255 255 255 / 0.14);
+    --bw-glass-highlight: rgb(255 255 255 / 0.06);
+    --bw-glass-shadow: 0 10px 30px rgb(0 0 0 / 0.28);
+
+    /* translucent surfaces derived from the active theme (with solid fallbacks) */
+    --bw-glass-bg: var(--primary);
+    --bw-glass-bg-strong: var(--primary-darker);
+    --bw-glass-bg-soft: var(--primary-lighter);
+}
+
+@supports (background: color-mix(in srgb, red 50%, transparent)) {
+    main.bw-control {
+        --bw-glass-bg: color-mix(in srgb, var(--primary) 72%, transparent);
+        --bw-glass-bg-strong: color-mix(in srgb, var(--primary-darker) 82%, transparent);
+        --bw-glass-bg-soft: color-mix(in srgb, var(--primary-lighter) 45%, transparent);
+        --bw-glass-border: color-mix(in srgb, var(--text) 16%, transparent);
+        --bw-glass-highlight: color-mix(in srgb, var(--text) 7%, transparent);
+    }
+}
+
+/* ambient control-room background (never the audience output) */
+main.bw-control:not(.background) {
+    background:
+        radial-gradient(1100px 700px at 15% -10%, var(--bw-glass-highlight), transparent 60%),
+        radial-gradient(900px 600px at 110% 110%, var(--bw-glass-highlight), transparent 55%),
+        linear-gradient(160deg, var(--primary) 0%, var(--primary-darker) 100%);
+}
+
+/* ---- Glass panels / cards ---- */
+main.bw-control .drawer,
+main.bw-control .ai-panel,
+main.bw-control .popup .card,
+main.bw-control .contextMenu,
+main.bw-control #previewArea .section {
+    background: var(--bw-glass-bg-strong);
+    background: var(--bw-glass-bg);
+    -webkit-backdrop-filter: blur(var(--bw-glass-blur)) saturate(1.15);
+    backdrop-filter: blur(var(--bw-glass-blur)) saturate(1.15);
+    border: 1px solid var(--bw-glass-border);
+    box-shadow: var(--bw-glass-shadow);
+}
+
+main.bw-control .drawer {
+    border-radius: var(--bw-glass-radius) var(--bw-glass-radius) 0 0;
+    border-bottom: none;
+}
+
+main.bw-control .popup .card {
+    border-radius: var(--bw-glass-radius);
+}
+
+main.bw-control .ai-panel {
+    border-radius: var(--bw-glass-radius);
+}
+
+main.bw-control .contextMenu {
+    border-radius: var(--bw-glass-radius-sm);
+    /* ContextMenu sets an inline --background; make sure the glass surface wins */
+    background-color: var(--bw-glass-bg) !important;
+}
+
+main.bw-control #previewArea .section {
+    border-radius: var(--bw-glass-radius-sm);
+}
+
+/* ---- Glass toolbars (flat bottom edge, no full card shadow) ---- */
+main.bw-control .column > .top,
+main.bw-control .drawer > .top,
+main.bw-control #previewArea .top {
+    background: var(--bw-glass-bg-soft);
+    -webkit-backdrop-filter: blur(var(--bw-glass-blur)) saturate(1.1);
+    backdrop-filter: blur(var(--bw-glass-blur)) saturate(1.1);
+    border-bottom: 1px solid var(--bw-glass-border);
+}
+
+/* ---- In-app media corner rounding (previews only; audience output is unscoped) ---- */
+main.bw-control img.thumbnail,
+main.bw-control video.thumbnail,
+main.bw-control .slide img,
+main.bw-control .slide video,
+main.bw-control #previewArea img,
+main.bw-control #previewArea video,
+main.bw-control .grid .card img,
+main.bw-control .grid .card video {
+    border-radius: var(--bw-media-radius);
+}
+
+/* Reduce motion / transparency preference: keep the look but drop the blur */
+@media (prefers-reduced-transparency: reduce) {
+    main.bw-control .drawer,
+    main.bw-control .ai-panel,
+    main.bw-control .popup .card,
+    main.bw-control .contextMenu,
+    main.bw-control #previewArea .section,
+    main.bw-control .column > .top,
+    main.bw-control .drawer > .top,
+    main.bw-control #previewArea .top {
+        -webkit-backdrop-filter: none;
+        backdrop-filter: none;
+        background: var(--primary-darker);
+    }
+}

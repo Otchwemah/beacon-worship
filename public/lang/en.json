@@ -1385,6 +1385,8 @@
         "media_import": "Media",
         "other": "Other",
         "language": "Language",
+        "interface": "Interface",
+        "liquid_glass": "Liquid Glass (control interface only)",
         "autosave": "Autosave",
         "never": "Never",
         "minutes": "minutes",

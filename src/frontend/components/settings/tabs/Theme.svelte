@@ -1,6 +1,6 @@
 <script lang="ts">
     import { onDestroy } from "svelte"
-    import { outputs, selected, theme, themes } from "../../../stores"
+    import { outputs, selected, special, theme, themes } from "../../../stores"
     import { updateThemeValues } from "../../../utils/updateSettings"
     import { clone } from "../../helpers/array"
     import { history } from "../../helpers/history"
@@ -8,6 +8,7 @@
     import MaterialColorInput from "../../inputs/MaterialColorInput.svelte"
     import MaterialFontDropdown from "../../inputs/MaterialFontDropdown.svelte"
     import MaterialNumberInput from "../../inputs/MaterialNumberInput.svelte"
+    import MaterialToggleSwitch from "../../inputs/MaterialToggleSwitch.svelte"
     import InputRow from "../../input/InputRow.svelte"
 
     const colors: string[] = [
@@ -69,6 +70,10 @@
         })
     }
 </script>
+
+<!-- Beacon Worship: Liquid Glass control-interface styling (default-on; control window only) -->
+<Title label="settings.interface" icon="theme" />
+<MaterialToggleSwitch label="settings.liquid_glass" checked={$special.liquidGlass !== false} defaultValue={true} on:change={(e) => special.update((a) => ({ ...a, liquidGlass: e.detail }))} />
 
 <InputRow>
     <MaterialFontDropdown label="settings.font_family" style="flex: 1;" value={$theme === "default" ? "" : $themes[$theme]?.font?.family || ""} on:change={(e) => updateTheme(e.detail || "", "family", "font")} allowEmpty />
