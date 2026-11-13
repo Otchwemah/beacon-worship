@@ -207,14 +207,16 @@ test.describe("hymn selection", () => {
         await expect(toolbarSearch).toBeVisible()
         await expect(toolbarSearch).toHaveAttribute("placeholder", /hymn/i)
 
-        // the toolbar must be horizontally over the list, and vertically above it
-        const list = window.locator(".hymns-panel .column")
-        await expect(list).toBeVisible()
+        // the toolbar must be horizontally over the results, and vertically above them.
+        // Grid is the default view now, so measure against the panel body rather than the
+        // list-only .column element.
+        const panel = window.locator(".hymns-panel")
+        await expect(panel).toBeVisible()
 
         const searchBox = (await toolbarSearch.boundingBox())!
-        const listBox = (await list.boundingBox())!
-        expect(searchBox.y + searchBox.height, "search should be above the list").toBeLessThanOrEqual(listBox.y + 2)
-        expect(searchBox.x, "search should start at the list, not in the nav column").toBeGreaterThanOrEqual(listBox.x - 2)
+        const panelBox = (await panel.boundingBox())!
+        expect(searchBox.y, "search should be at the top of the panel").toBeLessThan(panelBox.y + 60)
+        expect(searchBox.x, "search should start at the results, not in the nav column").toBeGreaterThanOrEqual(panelBox.x - 2)
 
         // the old navigation search box is gone
         await expect(window.locator(".hymn-search")).toHaveCount(0)
@@ -231,15 +233,49 @@ test.describe("hymn selection", () => {
         await expect(window.locator("input.drawer_search")).toHaveValue("")
     })
 
-    test("Hymns tab offers Load folder", async () => {
+    test("Load folder lives in the left navigation panel, like the Media tab", async () => {
         await openTab(window, "hymns")
 
-        const loadFolder = window.locator("button.load-folder")
+        // the button is in the navigation column, NOT in the content toolbar
+        const nav = window.locator(".navigation, .categories").first()
+        await expect(nav).toBeVisible()
+
+        const loadFolder = window.locator('button[title*="folder" i]').first()
         await expect(loadFolder).toBeVisible()
-        await expect(loadFolder).toBeEnabled()
-        await expect(loadFolder).toHaveAttribute("title", /folder/i)
+
+        // it must sit to the LEFT of the grid it populates
+        const grid = window.locator(".hymns-panel")
+        await expect(grid).toBeVisible()
+        const btnBox = (await loadFolder.boundingBox())!
+        const gridBox = (await grid.boundingBox())!
+        expect(btnBox.x, "Load folder should be in the left panel").toBeLessThan(gridBox.x)
+
         // deliberately not clicked: it opens a native OS folder dialog that Playwright
         // cannot drive, which would hang the suite.
+    })
+
+    test("Hymns defaults to grid view with adjustable size", async () => {
+        await openTab(window, "hymns")
+
+        const grid = window.locator(".hymn-grid")
+        // grid container exists even when the library is empty on a fresh CI profile
+        await expect(window.locator(".hymns-panel")).toBeVisible()
+
+        const listBtn = window.locator('button.view-btn[title*="List" i]')
+        const gridBtn = window.locator('button.view-btn[title*="Grid" i]')
+        await expect(gridBtn).toBeVisible()
+        await expect(listBtn).toBeVisible()
+
+        // grid is the default
+        await expect(gridBtn).toHaveClass(/on/)
+
+        // switching to list and back must not lose the panel
+        await listBtn.click()
+        await expect(window.locator(".hymns-panel .column")).toBeVisible()
+        await gridBtn.click()
+        await expect(gridBtn).toHaveClass(/on/)
+
+        if (await grid.count()) await expect(grid).toBeVisible()
     })
 })
 
@@ -292,6 +328,54 @@ test.describe("Bible navigation", () => {
         // Scripture.svelte renders .main.scripture with a .books list for navigation
         await expect(window.locator(".main.scripture")).toBeVisible()
         await expect(window.locator(".main.scripture .books")).toBeVisible()
+    })
+
+    test("Scripture shows reference and phrase search side by side", async () => {
+        await openTab(window, "scripture")
+
+        const reference = window.locator("input.scripture-reference-search")
+        const phrase = window.locator("input.scripture-phrase-search")
+        await expect(reference).toBeVisible()
+        await expect(phrase).toBeVisible()
+
+        await expect(reference).toHaveAttribute("placeholder", /book|chapter|verse/i)
+        await expect(phrase).toHaveAttribute("placeholder", /phrase/i)
+
+        // side by side: same row, reference on the left
+        const refBox = (await reference.boundingBox())!
+        const phraseBox = (await phrase.boundingBox())!
+        expect(refBox.x, "reference search should be left of phrase search").toBeLessThan(phraseBox.x)
+        expect(Math.abs(refBox.y - phraseBox.y), "both searches should share one row").toBeLessThan(6)
+
+        // both sit above the scripture content
+        const content = (await window.locator(".main.scripture").boundingBox())!
+        expect(refBox.y + refBox.height).toBeLessThanOrEqual(content.y + 2)
+    })
+
+    test("Scripture reference search mirrors the drawer search", async () => {
+        await openTab(window, "scripture")
+
+        const reference = window.locator("input.scripture-reference-search")
+        await reference.fill("John 3")
+
+        await expect(window.locator("input.drawer_search")).toHaveValue("John 3")
+
+        await reference.fill("")
+    })
+
+    test("Scripture phrase search accepts text and can be cleared", async () => {
+        await openTab(window, "scripture")
+
+        const phrase = window.locator("input.scripture-phrase-search")
+        test.skip(await phrase.isDisabled(), "Phrase search unavailable for the default CI Bible")
+
+        await phrase.fill("in the beginning")
+        await expect(phrase).toHaveValue("in the beginning")
+
+        // clearing via the inline clear button empties the field
+        const bar = window.locator("div.bar:has(input.scripture-phrase-search)")
+        await bar.locator("button.clear").click()
+        await expect(phrase).toHaveValue("")
     })
 })
 

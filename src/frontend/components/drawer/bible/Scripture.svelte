@@ -19,7 +19,7 @@
     import MaterialButton from "../../inputs/MaterialButton.svelte"
     import MaterialCheckbox from "../../inputs/MaterialCheckbox.svelte"
     import MaterialNumberInput from "../../inputs/MaterialNumberInput.svelte"
-    import TextInput from "../../inputs/TextInput.svelte"
+    import ScriptureSearchBars from "./ScriptureSearchBars.svelte"
     import Loader from "../../main/Loader.svelte"
     import Center from "../../system/Center.svelte"
     import { createScriptureShow, formatBibleText, getShortBibleName, getVerseIdParts, getVersePartLetter, joinRange, loadJsonBible, moveSelection, outputIsScripture, playScripture, sanitizeVerseText, scriptureRangeSelect, sortScriptureSelection, splitText, swapPreviewBible } from "./scripture"
@@ -811,19 +811,34 @@
         return `${bookName} ${firstLabel}${suffix}`.trim()
     }
 
-    let contentSearchFieldActive = false
+    let searchBars: ScriptureSearchBars | null = null
     let contentSearchValue = ""
     let contentSearchResults: VerseReference[] | null = null
 
-    // auto search when char length is 5 or longer
-    function searchValueChanged(e: any) {
-        contentSearchValue = e.target?.value || ""
-        if (contentSearchValue.length < 5) {
+    // Beacon Worship: YouVersion Bibles do not expose full-text search.
+    $: phraseSearchDisabled = typeof $scriptures[activeScriptureId]?.id === "string" ? $scriptures[activeScriptureId].id.includes("YOUVERSION") : false
+
+    // The reference bar writes the same query the top drawer search uses, so the existing
+    // referenceSearch() reactive statement handles parsing/autocomplete. Nudging it here
+    // keeps the two inputs in sync without duplicating the parser.
+    function referenceSearchChanged(e: any) {
+        searchValue = e.detail ?? searchValue
+        if (!searchValue.length) contentSearchResults = null
+    }
+
+    // Phrase bar: debounce so typing a long phrase does not fire a search per keystroke.
+    let phraseSearchTimeout: NodeJS.Timeout | null = null
+    function phraseSearchChanged(e: any) {
+        contentSearchValue = e.detail ?? contentSearchValue
+
+        if (phraseSearchTimeout) clearTimeout(phraseSearchTimeout)
+
+        if (contentSearchValue.trim().length < 3) {
             contentSearchResults = null
             return
         }
 
-        searchInBible()
+        phraseSearchTimeout = setTimeout(() => searchInBible(), 250)
     }
 
     async function searchInBible() {
@@ -847,7 +862,6 @@
     function resetContentSearch() {
         contentSearchValue = ""
         contentSearchResults = null
-        contentSearchFieldActive = false
     }
 
     /// KEYBOARD SHORTCUTS ///
@@ -920,10 +934,9 @@
             return
         }
 
-        // toggle Bible content search
+        // Beacon Worship: Ctrl+B jumps to the always-visible phrase search bar
         if (ctrlKey === "b") {
-            if (contentSearchFieldActive) resetContentSearch()
-            else contentSearchFieldActive = true
+            searchBars?.focusPhrase()
             return
         }
 
@@ -1044,6 +1057,19 @@
 </script>
 
 <svelte:window on:keydown={keydown} on:mouseup={mouseup} />
+
+<!-- Beacon Worship: reference + phrase search, side by side, always visible. -->
+<ScriptureSearchBars
+    bind:this={searchBars}
+    bind:reference={searchValue}
+    bind:phrase={contentSearchValue}
+    phraseDisabled={phraseSearchDisabled}
+    phraseDisabledReason={translateText("scripture.phrase_unavailable")}
+    resultCount={contentSearchResults === null ? null : contentSearchResults.length}
+    on:referenceChange={referenceSearchChanged}
+    on:phraseChange={phraseSearchChanged}
+    on:phraseSubmit={searchInBible}
+/>
 
 <div class="scroll" style="flex: 1;overflow-y: auto;">
     <div class="main scripture">
@@ -1262,11 +1288,7 @@
     </FloatingInputs>
 {/if}
 
-{#if contentSearchFieldActive}
-    <FloatingInputs>
-        <TextInput placeholder={translateText("scripture.search")} value={contentSearchValue} on:input={searchValueChanged} on:change={searchInBible} style="width: 300px;border-radius: 20px;" autofocus />
-    </FloatingInputs>
-{:else if $scriptureMode !== "grid" || $resized.rightPanelDrawer > 5}
+{#if $scriptureMode !== "grid" || $resized.rightPanelDrawer > 5}
     <FloatingInputs>
         {#if isActiveInOutput}
             <MaterialButton disabled={activeReference.book?.toString() === "1" && !!activeReference.chapters?.find((a) => a.toString() === "1") && !!activeReference.verses[0]?.find((a) => a.toString() === "1")} title="{translateText('preview._previous_slide')} [Ctrl+Arrow Left]" on:click={() => _moveSelection(true)}>
@@ -1296,7 +1318,7 @@
         {/if}
 
         <!-- content search is not supported for YouVersion Bibles (at the moment)-->
-        <MaterialButton title="scripture.search [Ctrl+B]" disabled={typeof $scriptures[activeScriptureId]?.id === "string" ? $scriptures[activeScriptureId].id.includes("YOUVERSION") : false} on:click={() => (contentSearchFieldActive = true)}>
+        <MaterialButton title="scripture.search [Ctrl+B]" disabled={phraseSearchDisabled} on:click={() => searchBars?.focusPhrase()}>
             <Icon size={1.1} id="search" white />
         </MaterialButton>
     </FloatingInputs>

@@ -1636,7 +1636,11 @@
         "reference_at_bottom": "Move to bottom",
         "red_jesus": "Jesus words in red",
         "show_all": "Show all",
-        "search": "Search in the Bible"
+        "search": "Search in the Bible",
+        "reference_placeholder": "Book chapter:verse — e.g. John 3:16",
+        "phrase_placeholder": "Search a phrase in this Bible…",
+        "phrase_hint": "Find every verse containing these words. Double-click a result to present it.",
+        "phrase_unavailable": "Phrase search is not available for this Bible version"
     },
     "filter": {
         "blur": "Blur",
