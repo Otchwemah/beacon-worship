@@ -91,6 +91,25 @@ function main() {
     // plain text to the job log
     console.log(digest)
 
+    // GitHub error ANNOTATIONS, one per failing spec.
+    //
+    // The job log and the artifacts both require admin/download rights, which makes a red
+    // run undiagnosable for anyone without them. Annotations are exposed on the public
+    // check-run API for public repos, so emitting them means the failing spec name and its
+    // first error line can be read straight from the run page (and by tooling) with no
+    // authentication at all.
+    if (process.env.GITHUB_ACTIONS) {
+        const escapeData = (value) => String(value).replace(/%/g, "%25").replace(/\r/g, "%0D").replace(/\n/g, "%0A")
+        const escapeProp = (value) => escapeData(value).replace(/:/g, "%3A").replace(/,/g, "%2C")
+
+        for (const spec of failed) {
+            // first line only: annotations are single-line summaries, the full text is above
+            const detail = trimMessage(firstError(spec)).split("\n").slice(0, 3).join(" | ")
+            console.log(`::error title=Regression failed: ${escapeProp(spec.title)}::${escapeData(detail)}`)
+        }
+        if (!failed.length) console.log(`::notice title=Regression passed::${escapeData(`${specs.length} specs, 0 failed`)}`)
+    }
+
     // markdown to the GitHub job summary, when running on Actions
     if (process.env.GITHUB_STEP_SUMMARY) {
         const markdown = ["```text", digest, "```", ""].join("\n")
