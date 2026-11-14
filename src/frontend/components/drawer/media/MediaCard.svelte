@@ -184,11 +184,10 @@
     const currentOutput = derived(outputs, ($outputs) => getFirstActiveOutput($outputs))
     const currentStyle = derived([currentOutput, styles], ([$currentOutput, $styles]) => $styles[$currentOutput?.style || ""] || {})
 
-    // Memoized media style computation
+    // Direct assignment: the previous JSON.stringify compared the raw store entry with the
+    // already-processed MediaStyle, so they never matched and this re-ran on every tick.
     let mediaStyle: MediaStyle = {}
-    $: if (path && JSON.stringify($media[path]) !== JSON.stringify(mediaStyle)) {
-        mediaStyle = getMediaStyle($media[path], $currentStyle)
-    }
+    $: mediaStyle = path ? getMediaStyle($media[path], $currentStyle) : {}
 
     // fixed resolution
     let resolution = { width: 16, height: 9 }

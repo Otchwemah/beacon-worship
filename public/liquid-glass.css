@@ -9,18 +9,33 @@
  *
  * The layer is theme-aware: it derives translucent surfaces from the active theme's CSS
  * variables rather than hard-coding colors, so existing themes keep working.
+ *
+ * Ultra-premium, no malfunctions, no lag:
+ *  - Light-from-above specular (inset highlights), layered shadows, hairline borders.
+ *  - Real backdrop-filter ONLY on small overlays (popup, context menu, AI panel). Blurring
+ *    a full-width drawer or a live-video preview is the compositor cost that made the UI
+ *    hitch, and it is also what flickers when the preview paints every frame.
+ *  - Large surfaces (drawer, preview, toolbars) use a frosted fill of the same palette so
+ *    they still read as glass, without a live blur.
+ *  - Media files stay square via --bw-media-radius (see square-corners.css). Chrome keeps
+ *    --bw-glass-radius.
  */
 
 main.bw-control {
-    --bw-glass-blur: 16px;
-    /* Beacon Worship: square corners (see square-corners.css). Kept at 0 here too so the
-       glass layer never reintroduces rounding if that file is ever removed. */
-    --bw-glass-radius: 0px;
-    --bw-glass-radius-sm: 0px;
+    --bw-glass-blur: 18px;
+    --bw-glass-radius: 12px;
+    --bw-glass-radius-sm: 8px;
     --bw-media-radius: 0px;
-    --bw-glass-border: rgb(255 255 255 / 0.14);
-    --bw-glass-highlight: rgb(255 255 255 / 0.06);
-    --bw-glass-shadow: 0 10px 30px rgb(0 0 0 / 0.28);
+    --bw-glass-border: rgb(255 255 255 / 0.16);
+    --bw-glass-highlight: rgb(255 255 255 / 0.08);
+    --bw-glass-shadow:
+        inset 0 1px 0 rgb(255 255 255 / 0.14),
+        inset 0 -1px 0 rgb(0 0 0 / 0.18),
+        0 12px 36px rgb(0 0 0 / 0.32),
+        0 2px 6px rgb(0 0 0 / 0.18);
+    --bw-glass-shadow-sm:
+        inset 0 1px 0 rgb(255 255 255 / 0.12),
+        0 8px 22px rgb(0 0 0 / 0.28);
 
     /* translucent surfaces derived from the active theme (with solid fallbacks) */
     --bw-glass-bg: var(--primary);
@@ -30,32 +45,26 @@ main.bw-control {
 
 @supports (background: color-mix(in srgb, red 50%, transparent)) {
     main.bw-control {
-        --bw-glass-bg: color-mix(in srgb, var(--primary) 72%, transparent);
-        --bw-glass-bg-strong: color-mix(in srgb, var(--primary-darker) 82%, transparent);
-        --bw-glass-bg-soft: color-mix(in srgb, var(--primary-lighter) 45%, transparent);
-        --bw-glass-border: color-mix(in srgb, var(--text) 16%, transparent);
-        --bw-glass-highlight: color-mix(in srgb, var(--text) 7%, transparent);
+        --bw-glass-bg: color-mix(in srgb, var(--primary) 62%, transparent);
+        --bw-glass-bg-strong: color-mix(in srgb, var(--primary-darker) 88%, transparent);
+        --bw-glass-bg-soft: color-mix(in srgb, var(--primary-lighter) 55%, transparent);
+        --bw-glass-border: color-mix(in srgb, var(--text) 18%, transparent);
+        --bw-glass-highlight: color-mix(in srgb, var(--text) 9%, transparent);
     }
 }
 
-/* ambient control-room background (never the audience output) */
+/* ambient control-room background (never the audience output). Static, cheap. */
 main.bw-control:not(.background) {
     background:
-        radial-gradient(1100px 700px at 15% -10%, var(--bw-glass-highlight), transparent 60%),
-        radial-gradient(900px 600px at 110% 110%, var(--bw-glass-highlight), transparent 55%),
+        radial-gradient(1000px 620px at 12% -12%, rgb(219 172 100 / 0.10), transparent 58%),
+        radial-gradient(900px 600px at 110% 108%, var(--bw-glass-highlight), transparent 55%),
         linear-gradient(160deg, var(--primary) 0%, var(--primary-darker) 100%);
 }
 
-/* ---- Glass panels / cards ---- */
+/* ---- Large frosted panels: NO live backdrop-filter (lag + flicker next to video) ---- */
 main.bw-control .drawer,
-main.bw-control .ai-panel,
-main.bw-control .popup .card,
-main.bw-control .contextMenu,
 main.bw-control #previewArea .section {
     background: var(--bw-glass-bg-strong);
-    background: var(--bw-glass-bg);
-    -webkit-backdrop-filter: blur(var(--bw-glass-blur)) saturate(1.15);
-    backdrop-filter: blur(var(--bw-glass-blur)) saturate(1.15);
     border: 1px solid var(--bw-glass-border);
     box-shadow: var(--bw-glass-shadow);
 }
@@ -63,6 +72,22 @@ main.bw-control #previewArea .section {
 main.bw-control .drawer {
     border-radius: var(--bw-glass-radius) var(--bw-glass-radius) 0 0;
     border-bottom: none;
+}
+
+main.bw-control #previewArea .section {
+    border-radius: var(--bw-glass-radius-sm);
+}
+
+/* ---- Small overlays: real glass blur (cheap because the surface is small) ---- */
+main.bw-control .ai-panel,
+main.bw-control .popup .card,
+main.bw-control .contextMenu {
+    background: var(--bw-glass-bg);
+    -webkit-backdrop-filter: blur(var(--bw-glass-blur));
+    backdrop-filter: blur(var(--bw-glass-blur));
+    border: 1px solid var(--bw-glass-border);
+    box-shadow: var(--bw-glass-shadow);
+    isolation: isolate;
 }
 
 main.bw-control .popup .card {
@@ -79,21 +104,16 @@ main.bw-control .contextMenu {
     background-color: var(--bw-glass-bg) !important;
 }
 
-main.bw-control #previewArea .section {
-    border-radius: var(--bw-glass-radius-sm);
-}
-
-/* ---- Glass toolbars (flat bottom edge, no full card shadow) ---- */
+/* ---- Toolbars: hairline + specular, no blur (they sit on already-tinted chrome) ---- */
 main.bw-control .column > .top,
 main.bw-control .drawer > .top,
 main.bw-control #previewArea .top {
     background: var(--bw-glass-bg-soft);
-    -webkit-backdrop-filter: blur(var(--bw-glass-blur)) saturate(1.1);
-    backdrop-filter: blur(var(--bw-glass-blur)) saturate(1.1);
     border-bottom: 1px solid var(--bw-glass-border);
+    box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.08);
 }
 
-/* ---- In-app media corner rounding (previews only; audience output is unscoped) ---- */
+/* ---- In-app media files are square (previews only; audience output is unscoped) ---- */
 main.bw-control img.thumbnail,
 main.bw-control video.thumbnail,
 main.bw-control .slide img,

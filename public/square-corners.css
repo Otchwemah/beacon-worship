@@ -1,83 +1,52 @@
 /*
- * Beacon Worship — square corners.
+ * Beacon Worship — square corners on MEDIA FILES only.
  *
- * The operator asked for every curved corner to be removed while everything still fits
- * exactly where it belongs. There are ~350 `border-radius` declarations spread across the
- * Svelte components, so instead of editing each one (which would drift the moment upstream
- * changes a component) this layer overrides them centrally.
+ * The operator's correction: curve removal was supposed to affect media files, not the
+ * entire UI. Chrome (drawers, buttons, popups, hymn slide previews, the loading splash)
+ * keeps its normal rounding from Liquid Glass / the components.
  *
- * Loaded AFTER liquid-glass.css so it wins on equal specificity.
+ * Loaded AFTER liquid-glass.css so it wins on equal specificity for the media selectors.
  *
- * SCOPING — deliberately the same as liquid-glass.css: `main.bw-control` is added only to the
- * control window's <main>. Audience/output windows, the PDF export window and the stage
- * server never get it, so projected slides and scripture on the big screen keep whatever
- * styling the operator chose. This is interface chrome only.
+ * SCOPING — same as liquid-glass.css: `main.bw-control` is added only to the control
+ * window's <main>. Audience/output windows never get it, so projected slides keep the
+ * operator's own styling.
  *
- * LAYOUT SAFETY — border-radius is a paint-only property: it never affects box size, flow or
- * positioning. Zeroing it cannot move or resize anything, which is why "everything still fits"
- * holds by construction. The only behavioural side effect is that `overflow: hidden` now clips
- * to a rectangle instead of a rounded one, so previews fill their tiles edge to edge.
- *
- * EXCEPTIONS — a spinner is a CIRCLE, not a rounded corner. `.loader` draws a rotating ring
- * with `border-radius: 50%`; squaring it would turn the loading indicator into a tumbling
- * square. Those keep their radius. Everything else, including dots, badges, pills, toggles,
- * inputs, cards, popups and thumbnails, is squared.
+ * LAYOUT SAFETY — border-radius is paint-only. Zeroing it on media cannot move or resize
+ * anything. Inline images are `display: block` so the text-baseline hairline does not
+ * show at the bottom of a now-square tile.
  */
 
-/* the Liquid Glass layer reads these, so zero them at the source as well */
+/* the Liquid Glass layer reads this; keep media square even if this file is removed */
 main.bw-control {
-    --bw-glass-radius: 0px;
-    --bw-glass-radius-sm: 0px;
     --bw-media-radius: 0px;
 }
 
-/* The class is repeated deliberately: a Svelte-scoped rule like `.card.svelte-xyz` has
-   specificity (0,2,0) and would beat a plain `main.bw-control *` (0,1,1) if it ever used
-   !important. Repeating the class raises this to (0,3,1) so the override holds even then,
-   without needing an id or an attribute hack. */
-main.bw-control,
-main.bw-control.bw-control.bw-control *,
-main.bw-control.bw-control.bw-control *::before,
-main.bw-control.bw-control.bw-control *::after {
+/* The class is repeated deliberately: a Svelte-scoped rule like `img.svelte-xyz` has
+   specificity (0,2,0) and would beat a plain `main.bw-control img` (0,1,1) if it ever
+   used !important. Repeating the class raises this to (0,3,1). */
+main.bw-control.bw-control.bw-control img.thumbnail,
+main.bw-control.bw-control.bw-control video.thumbnail,
+main.bw-control.bw-control.bw-control .grid .card img,
+main.bw-control.bw-control.bw-control .grid .card video,
+main.bw-control.bw-control.bw-control .grid .card canvas,
+main.bw-control.bw-control.bw-control #previewArea img,
+main.bw-control.bw-control.bw-control #previewArea video,
+main.bw-control.bw-control.bw-control .slide img,
+main.bw-control.bw-control.bw-control .slide video {
     border-radius: 0 !important;
 }
 
-/* --- keep genuinely circular things circular (loading rings, not corners) ---
-   Selectors verified against the components:
-     .loader                main/Loader.svelte — rotating ring
-     .spinner               AiVisual / AiTranscription — rotating ring
-     .confidence-meter-pie  ConfidenceMeter.svelte — conic-gradient pie, meaningless square
-     .visual-container      AiVisual.svelte — circular audio visualiser                  */
-main.bw-control.bw-control.bw-control .loader,
-main.bw-control.bw-control.bw-control .spinner,
-main.bw-control.bw-control.bw-control .confidence-meter-pie,
-main.bw-control.bw-control.bw-control .visual-container {
-    border-radius: 50% !important;
-}
-
-/*
- * A rounded panel used to hide the square corner of whatever sat inside it. With square
- * panels the child must fill the box exactly, or a 1px seam of the parent shows through.
- * These are the places where a preview is inset inside a bordered tile.
- */
-main.bw-control .slide-preview,
-main.bw-control .hymn-card .thumb,
-main.bw-control .grid .card,
-main.bw-control #previewArea .section {
+/* media tiles clip to a rectangle so the file fills the card edge-to-edge */
+main.bw-control .grid .card {
     overflow: hidden;
 }
 
-main.bw-control .slide-preview .canvas,
 main.bw-control .grid .card img,
 main.bw-control .grid .card video,
+main.bw-control .grid .card canvas,
+main.bw-control img.thumbnail,
+main.bw-control video.thumbnail,
 main.bw-control #previewArea img,
 main.bw-control #previewArea video {
-    display: block;
-}
-
-/* inline images sit on a text baseline by default, which leaves a hairline gap at the
-   bottom of a tile once the corner is square. Block display removes that gap. */
-main.bw-control img.thumbnail,
-main.bw-control video.thumbnail {
     display: block;
 }

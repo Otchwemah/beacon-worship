@@ -610,7 +610,7 @@
                                     on:open={(e) => (path = e.detail)}
                                 />
                             {:else}
-                                <Media credits={item.credits || {}} name={item.name || ""} path={item.path} thumbnailPath={item.previewUrl || item.thumbnailPath} loadFullImage={$mediaOptions.columns < 3} type={getMediaType(item.extension || getExtension(item.name))} shiftRange={mediaFilesOnly.map((a) => ({ ...a, type: getMediaType(getExtension(a.name)), name: removeExtension(a.name) }))} {active} />
+                                <Media credits={item.credits || {}} name={item.name || ""} path={item.path} thumbnailPath={item.previewUrl || item.thumbnailPath} loadFullImage={$mediaOptions.columns < 2} type={getMediaType(item.extension || getExtension(item.name))} shiftRange={mediaFilesOnly.map((a) => ({ ...a, type: getMediaType(getExtension(a.name)), name: removeExtension(a.name) }))} {active} />
                             {/if}
                         </MediaGrid>
                     {:else}
@@ -618,7 +618,7 @@
                             {#if file.isFolder}
                                 <Folder name={file.name} path={file.path} mode={$mediaOptions.mode} on:open={(e) => (path = e.detail)} />
                             {:else}
-                                <Media credits={file.credits || {}} thumbnail={$mediaOptions.mode !== "list"} name={file.name || ""} path={file.path} loadFullImage={$mediaOptions.columns < 3} type={getMediaType(file.extension || getExtension(file.name))} shiftRange={mediaFilesOnly.map((a) => ({ ...a, type: getMediaType(getExtension(a.name)), name: removeExtension(a.name) }))} {active} />
+                                <Media credits={file.credits || {}} thumbnail={$mediaOptions.mode !== "list"} name={file.name || ""} path={file.path} loadFullImage={$mediaOptions.columns < 2} type={getMediaType(file.extension || getExtension(file.name))} shiftRange={mediaFilesOnly.map((a) => ({ ...a, type: getMediaType(getExtension(a.name)), name: removeExtension(a.name) }))} {active} />
                             {/if}
                         </VirtualList>
                     {/if}

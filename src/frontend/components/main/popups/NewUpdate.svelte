@@ -10,11 +10,10 @@
     registerPopupSubmit(download)
 
     let changelog = ($popupData.changelog || "").replaceAll("\r\n", "<br>").replaceAll("-", "•")
-    let latestVersion = $popupData.latestVersion
 
     function download() {
-        const isBeta = latestVersion.includes("-beta")
-        sendMain(Main.URL, isBeta ? "https://github.com/ChurchApps/FreeShow/releases" : "https://freeshow.app/?download")
+        // Beacon Worship builds come from this repository, not upstream FreeShow.
+        sendMain(Main.URL, "https://github.com/Otchwemah/beacon-worship/releases")
 
         activePopup.set(null)
         popupData.set({})

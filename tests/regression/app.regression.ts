@@ -18,8 +18,10 @@ import path from "path"
 //    closed". Always skip loading.html and require the drawer tab strip.
 //  - `span.tabs` matches more than one element (the drawer strip and a strip in the top bar),
 //    so it must be scoped with :has(#hymns) to avoid Playwright strict-mode violations.
-//  - checkForUpdates() opens a "new_update" popup on a fresh profile, and its overlay
-//    intercepts every click. Popups are dismissed before each test.
+//  - checkForUpdates() used to open a "new_update" popup on a fresh profile (it compared
+//    our 1.6.6 against ChurchApps/freeshow). It now checks Otchwemah/beacon-worship with
+//    a real newer-than comparison, so an empty release list means the popup never opens.
+//    The route below still stubs the GitHub API, and popups are dismissed before each test.
 
 const appRoot = path.resolve(__dirname, "..", "..")
 
@@ -122,11 +124,11 @@ test.beforeAll(async () => {
         timeout: 120_000
     })
 
-    // Neutralise the upstream update check for the whole context, before any renderer can
-    // fetch. utils/updateSettings.ts fires checkForUpdates() on a 50ms timer, which opens the
-    // "new_update" popup whose overlay intercepts clicks. Dismissing it per-test is a race;
-    // returning an empty release list means hasUpdate is false and the popup never opens.
-    await app.context().route("**/api.github.com/repos/ChurchApps/freeshow/releases**", (route) => route.fulfill({ status: 200, contentType: "application/json", body: "[]" }))
+    // Neutralise the update check for the whole context, before any renderer can fetch.
+    // utils/updateSettings.ts fires checkForUpdates() on a 50ms timer. Returning an empty
+    // release list means hasUpdate is false and the popup never opens. The glob covers both
+    // the Beacon Worship feed and the old ChurchApps URL in case a stale build is under test.
+    await app.context().route("**/api.github.com/repos/**/releases**", (route) => route.fulfill({ status: 200, contentType: "application/json", body: "[]" }))
 
     window = await waitForMainWindow(app)
     await window.waitForLoadState("domcontentloaded")
@@ -483,42 +485,30 @@ test.describe("hymn thumbnails come from the first slide", () => {
 })
 
 test.describe("square corners", () => {
-    test("control-interface chrome has no rounded corners", async () => {
+    test("control-interface chrome keeps its rounded corners", async () => {
         await openTab(window, "hymns")
 
-        // sample real, visible chrome across the window rather than every node
-        const selectors = [".drawer", ".hymns-panel", "span.tabs:has(#hymns)", "input.hymn-search-input"]
-        let checked = 0
+        // Liquid Glass gives the drawer 12px on its top corners. The earlier blanket
+        // squaring was walked back: chrome must stay rounded, media files only are square.
+        const drawer = window.locator(".drawer").first()
+        await expect(drawer).toBeVisible()
 
-        for (const selector of selectors) {
-            const elem = window.locator(selector).first()
-            if (!(await elem.count())) continue
-            if (!(await elem.isVisible())) continue
-
-            const radii = await elem.evaluate((node) => {
-                const cs = getComputedStyle(node)
-                return [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomLeftRadius, cs.borderBottomRightRadius]
-            })
-            expect(radii.every((r) => parseFloat(r) === 0), `${selector} should be square, got ${radii.join(", ")}`).toBe(true)
-            checked++
-        }
-
-        expect(checked, "expected to measure at least one chrome element").toBeGreaterThan(0)
+        const radii = await drawer.evaluate((node) => {
+            const cs = getComputedStyle(node)
+            return [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomLeftRadius, cs.borderBottomRightRadius]
+        })
+        expect(parseFloat(radii[0]), `drawer top-left should be rounded, got ${radii.join(", ")}`).toBeGreaterThan(0)
+        expect(parseFloat(radii[1]), `drawer top-right should be rounded, got ${radii.join(", ")}`).toBeGreaterThan(0)
     })
 
-    test("a hymn thumbnail is square and fills its tile", async () => {
-        await openTab(window, "hymns")
+    test("media files have square corners", async () => {
+        await openTab(window, "media")
 
-        const thumb = window.locator(".hymn-card .thumb").first()
-        test.skip((await thumb.count()) === 0, "No hymns imported on this runner")
+        const media = window.locator(".grid .card img, .grid .card video, img.thumbnail, video.thumbnail").first()
+        test.skip((await media.count()) === 0, "No media files on this runner")
 
-        const radius = await thumb.evaluate((node) => getComputedStyle(node).borderTopLeftRadius)
+        const radius = await media.evaluate((node) => getComputedStyle(node).borderTopLeftRadius)
         expect(parseFloat(radius)).toBe(0)
-
-        // square corners must not change the box: the tile keeps its 16:9 shape
-        const box = (await thumb.boundingBox())!
-        expect(box.width).toBeGreaterThan(10)
-        expect(Math.abs(box.width / box.height - 16 / 9)).toBeLessThan(0.2)
     })
 
     test("the loading spinner stays circular", async () => {
