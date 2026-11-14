@@ -1,18 +1,18 @@
 <script lang="ts">
     import { onDestroy, onMount, tick } from "svelte"
     import { uid } from "uid"
-    import { SpeechToText, audioLevelStore } from "../../../ai/stt/stt"
+    import { SpeechToText } from "../../../ai/stt/stt"
     import { Transcript } from "../../../ai/stt/transcript"
     import { ai, aiSuggestions, aiSttStatus, outLocked, scriptures, sttTempDisabled, sttTranscript } from "../../../stores"
     import { newToast } from "../../../utils/common"
     import MaterialButton from "../../inputs/MaterialButton.svelte"
+    import MicLevel from "./MicLevel.svelte"
     import { presentSermonVerse } from "./presentSermonVerse"
     import { enqueueVerse, removeQueuedVerse, sermonGoLive, sermonLive, sermonMode, sermonPreview, sermonQueue, verseFromSuggestion, type SermonVerse } from "./sermonStore"
     import { lookupVerseText } from "./verseLookup"
 
-    $: detections = $aiSuggestions.filter((item) => item.kind !== "hymn" && item.kind !== "scripture_command" && item.content)
+    $: detections = $aiSuggestions.filter((item) => item.kind !== "scripture_command" && item.content)
     $: listening = $ai.enabled && !$sttTempDisabled && $aiSttStatus.state === "listening"
-    $: level = $audioLevelStore
     $: bibleName = activeBibleName($scriptures)
 
     function activeBibleName(all: typeof $scriptures) {
@@ -22,7 +22,7 @@
     }
 
     async function withText(verse: SermonVerse): Promise<SermonVerse> {
-        if (verse.text) return verse
+        if (verse.text || verse.kind === "hymn") return verse
         const text = await lookupVerseText(verse.reference)
         return { ...verse, text }
     }
@@ -75,8 +75,8 @@
         const query = searchValue.trim()
         if (!query) return
         const text = await lookupVerseText(query)
-        const verse: SermonVerse = { id: uid(5), reference: query, text, confidence: 100, matchType: "reference", timestamp: Date.now() }
-        await stage(verse)
+        const verse: SermonVerse = { id: uid(5), reference: query, text, confidence: 100, matchType: "reference", timestamp: Date.now(), kind: "scripture" }
+        await play(verse)
     }
 
     function onSearchKey(e: KeyboardEvent) {
@@ -87,21 +87,20 @@
     }
 
     function onKey(e: KeyboardEvent) {
+        if (e.repeat) return
         const target = e.target as HTMLElement
         if (target?.closest("input, textarea, [contenteditable]")) return
         if (e.key === "l" || e.key === "L") {
             e.preventDefault()
             toggleGoLive()
         }
-        if (e.key === " " && $sermonPreview) {
-            e.preventDefault()
-            play($sermonPreview)
-        }
     }
 
     let transcriptElem: HTMLElement | undefined
     let transcriptPinned = true
-    $: transcript = ($sttTranscript.finalized || "") + ($sttTranscript.unprocessed ? " " + $sttTranscript.unprocessed : "")
+    const TRANSCRIPT_VIEW = 1800
+    $: rawTranscript = ($sttTranscript.finalized || "") + ($sttTranscript.unprocessed ? " " + $sttTranscript.unprocessed : "")
+    $: transcript = rawTranscript.length > TRANSCRIPT_VIEW ? rawTranscript.slice(-TRANSCRIPT_VIEW) : rawTranscript
     $: if (transcriptPinned && transcript && transcriptElem) scrollTranscript()
     async function scrollTranscript() {
         await tick()
@@ -122,7 +121,7 @@
         <MaterialButton variant="contained" icon={listening ? "close" : "microphone"} on:click={toggleListen}>
             {listening ? "Stop listening" : "Start transcribing"}
         </MaterialButton>
-        <span class="level" class:on={listening} title="Microphone level"><span style="width: {Math.round(level * 100)}%;"></span></span>
+        <MicLevel on={listening} />
         <span class="state" class:live={listening}>{listening ? "Listening" : $aiSttStatus.state === "error" ? "Mic error" : "Stopped"}</span>
         <span class="bible" title={bibleName}>{bibleName}</span>
         <div class="fill"></div>
@@ -193,11 +192,11 @@
         {#if detections.length}
             <div class="list">
                 {#each detections as item (item.id)}
-                    <div class="card detection" class:reference={item.scriptureMatchType === "reference"} class:content={item.scriptureMatchType === "content"}>
+                    <div class="card detection" class:reference={item.kind !== "hymn" && item.scriptureMatchType === "reference"} class:content={item.kind !== "hymn" && item.scriptureMatchType === "content"} class:hymn={item.kind === "hymn"}>
                         <button class="body" on:click={() => stage(verseFromSuggestion(item))}>
                             <strong>{item.content}</strong>
                             <span class="meta">
-                                {item.scriptureMatchType === "reference" ? "Citation" : item.scriptureMatchType === "content" ? "Paraphrase · preview only" : "Unclassified · preview only"}
+                                {item.kind === "hymn" ? "Hymn" : item.scriptureMatchType === "reference" ? "Citation" : item.scriptureMatchType === "content" ? "Paraphrase · preview only" : "Unclassified · preview only"}
                                 · {Math.round(item.confidence)}%
                             </span>
                             {#if item.rationale}<span class="why">{item.rationale}</span>{/if}
@@ -208,7 +207,7 @@
                 {/each}
             </div>
         {:else}
-            <p class="empty">{listening ? "Listening for spoken references…" : "Start transcribing. Explicit Bible references appear here."}</p>
+            <p class="empty">{listening ? "Listening for spoken scripture and hymn numbers…" : "Start transcribing. Explicit Bible references and hymn numbers appear here."}</p>
         {/if}
     </section>
 
@@ -270,18 +269,6 @@
     .state.live {
         color: #2ecc71;
         opacity: 1;
-    }
-    .level {
-        width: 72px;
-        height: 6px;
-        flex-shrink: 0;
-        background: rgb(255 255 255 / 0.12);
-        overflow: hidden;
-    }
-    .level span {
-        display: block;
-        height: 100%;
-        background: #2ecc71;
     }
     .modes {
         display: flex;
@@ -377,7 +364,7 @@
         font-size: 0.92em;
         line-height: 1.45;
         white-space: pre-wrap;
-        overflow-wrap: anywhere;
+        overflow-wrap: break-word;
     }
     .empty {
         margin: 0;
@@ -424,6 +411,9 @@
     }
     .card.content {
         border-left: 3px solid rgb(255 255 255 / 0.25);
+    }
+    .card.hymn {
+        border-left: 3px solid #f1c40f;
     }
     .body {
         flex: 1;

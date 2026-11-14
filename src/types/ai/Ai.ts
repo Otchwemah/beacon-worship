@@ -32,6 +32,7 @@ export interface AiSuggestion {
     // "hymn" = an explicit local hymn-number command; "scripture_command" = an explicit
     // Scripture navigation/version command (not an inferred verse-content match)
     kind?: "hymn" | "scripture_command"
+    hymnShowId?: string
     scriptureTranslation?: string
     scriptureMatchType?: "reference" | "content"
     rationale?: string

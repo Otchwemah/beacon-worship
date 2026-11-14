@@ -1,21 +1,32 @@
 import { get } from "svelte/store"
 import { activeScripture, drawerTabsData, outLocked } from "../../../stores"
 import { newToast } from "../../../utils/common"
+import { startShow } from "../../helpers/showActions"
 import { parseEngScriptureRefToNumbers, playScripture, resolveScriptureReference } from "../bible/scripture"
-import { sermonLive, type SermonVerse } from "./sermonStore"
 import { formatSermonReference } from "./sermonReference"
+import { sermonLive, type SermonVerse } from "./sermonStore"
 import { lookupVerseText } from "./verseLookup"
 
 /**
- * Send a verse to the audience output WITHOUT leaving the Sermon tab.
+ * Send a verse or hymn to the audience output WITHOUT leaving the Sermon tab.
  * startScripture() switches the drawer to Scripture (so Scripture.svelte can
  * consume openScripture). The Sermon console must stay put, so we set
- * activeScripture and call playScripture() directly.
+ * activeScripture and call playScripture() directly. Hymns use startShow().
  */
 export async function presentSermonVerse(verse: SermonVerse): Promise<boolean> {
     if (get(outLocked)) {
         newToast("main.locked")
         return false
+    }
+
+    if (verse.kind === "hymn") {
+        if (!verse.hymnShowId) {
+            newToast("That hymn is not in the local library")
+            return false
+        }
+        await startShow(verse.hymnShowId)
+        sermonLive.set({ ...verse, timestamp: Date.now() })
+        return true
     }
 
     const parsed = parseEngScriptureRefToNumbers(verse.reference)

@@ -226,10 +226,15 @@ export class SpeechToText {
         return () => this.listeners.delete(callback)
     }
 
+    private static lastStoreLevel = -1
     private static emitAudioLevel(level: number) {
-        const value = level < 0.04 ? 0 : level
-        audioLevelStore.set(value)
+        // Quantize and skip duplicate store writes. requestAnimationFrame runs at ~60fps;
+        // publishing every tick re-rendered the Sermon dashboard (10k-char transcript) and froze the app.
+        const value = level < 0.04 ? 0 : Math.round(level * 20) / 20
         this.listeners.forEach((fn) => fn(value))
+        if (value === this.lastStoreLevel) return
+        this.lastStoreLevel = value
+        audioLevelStore.set(value)
     }
 
     static stopCapture() {

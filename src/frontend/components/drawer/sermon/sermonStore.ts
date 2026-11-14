@@ -18,6 +18,8 @@ export interface SermonVerse {
     confidence: number
     matchType?: "reference" | "content"
     timestamp: number
+    kind?: "scripture" | "hymn"
+    hymnShowId?: string
 }
 
 export const sermonMode = writable<SermonMode>("manual")
@@ -26,14 +28,16 @@ export const sermonPreview = writable<SermonVerse | null>(null)
 export const sermonQueue = writable<SermonVerse[]>([])
 export const sermonLive = writable<SermonVerse | null>(null)
 
-export function verseFromSuggestion(suggestion: { id: string; content: string; confidence: number; scriptureMatchType?: "reference" | "content"; timestamp: number; kind?: string }, text = ""): SermonVerse {
+export function verseFromSuggestion(suggestion: { id: string; content: string; confidence: number; scriptureMatchType?: "reference" | "content"; timestamp: number; kind?: string; hymnShowId?: string }, text = ""): SermonVerse {
     return {
         id: suggestion.id,
         reference: suggestion.content,
         text,
         confidence: suggestion.confidence,
         matchType: suggestion.scriptureMatchType,
-        timestamp: suggestion.timestamp
+        timestamp: suggestion.timestamp,
+        kind: suggestion.kind === "hymn" ? "hymn" : "scripture",
+        hymnShowId: suggestion.hymnShowId
     }
 }
 

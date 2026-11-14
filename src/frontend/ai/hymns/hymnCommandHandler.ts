@@ -4,8 +4,9 @@ import type { AiSuggestion } from "../../../types/ai/Ai"
 import type { ShowList } from "../../../types/Show"
 import { keysToID } from "../../components/helpers/array"
 import { getFirstActiveOutput } from "../../components/helpers/output"
+import { sermonMode } from "../../components/drawer/sermon/sermonStore"
 import { startShow } from "../../components/helpers/showActions"
-import { activeProfile, aiSuggestions, categories, drawerTabsData, shows, special } from "../../stores"
+import { activeDrawerTab, activeProfile, aiSuggestions, categories, drawerTabsData, shows, special } from "../../stores"
 import { newToast } from "../../utils/common"
 import { translateText } from "../../utils/language"
 import { getAccess } from "../../utils/profile"
@@ -53,14 +54,20 @@ export async function handleHymnCommand(command: HymnCommand): Promise<HymnComma
     const label = `Hymn ${command.number}${resolution.showName ? " — " + resolution.showName : ""}`
 
     if (resolution.status === "activate" && resolution.showId) {
+        // Sermon Manual: detections only. Operator presses Play. Auto still presents hymn numbers.
+        const sermonManual = get(activeDrawerTab) === "sermon" && get(sermonMode) === "manual"
+        if (sermonManual) {
+            addHymnSuggestion(command, label, "present", resolution.showId)
+            return resolution
+        }
         try {
             await startShow(resolution.showId)
             newToast(translateText("hymns.voice_presented", null, [String(command.number)]))
-            addHymnSuggestion(command, label, "presented")
+            addHymnSuggestion(command, label, "presented", resolution.showId)
         } catch (err) {
             console.error("Failed to present hymn command:", err)
             newToast(translateText("hymns.voice_error"))
-            addHymnSuggestion(command, label, "error")
+            addHymnSuggestion(command, label, "error", resolution.showId)
         }
     } else if (resolution.status === "unavailable") {
         newToast(translateText("hymns.voice_unavailable", null, [String(command.number)]))
@@ -73,7 +80,7 @@ export async function handleHymnCommand(command: HymnCommand): Promise<HymnComma
     return resolution
 }
 
-function addHymnSuggestion(command: HymnCommand, content: string, action: string) {
+function addHymnSuggestion(command: HymnCommand, content: string, action: string, showId?: string) {
     const suggestion: AiSuggestion = {
         id: uid(5),
         kind: "hymn",
@@ -81,7 +88,8 @@ function addHymnSuggestion(command: HymnCommand, content: string, action: string
         content,
         timestamp: Date.now(),
         confidence: command.confidence,
-        rationale: command.rationale
+        rationale: command.rationale,
+        hymnShowId: showId
     }
 
     aiSuggestions.update((list) => {

@@ -35,6 +35,11 @@ describe("formatSermonReference", () => {
 describe("verseFromSuggestion", () => {
     it("copies the scripture suggestion fields", () => {
         const card = verseFromSuggestion({ id: "abc", content: "John 3:16", confidence: 98, scriptureMatchType: "reference", timestamp: 5 }, "For God so loved")
-        expect(card).toMatchObject({ id: "abc", reference: "John 3:16", text: "For God so loved", matchType: "reference", confidence: 98 })
+        expect(card).toMatchObject({ id: "abc", reference: "John 3:16", text: "For God so loved", matchType: "reference", confidence: 98, kind: "scripture" })
+    })
+
+    it("keeps hymn detections playable from the sermon console", () => {
+        const card = verseFromSuggestion({ id: "h1", content: "Hymn 108 — Amazing Grace", confidence: 92, timestamp: 5, kind: "hymn", hymnShowId: "show-108" })
+        expect(card).toMatchObject({ kind: "hymn", hymnShowId: "show-108", reference: "Hymn 108 — Amazing Grace" })
     })
 })
