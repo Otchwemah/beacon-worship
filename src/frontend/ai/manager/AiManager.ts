@@ -28,19 +28,36 @@ export class AiManager {
     private static lastNavCommand: { direction: string; unit: string; time: number } | null = null
     private static lastVersionCommand: { query: string; time: number } | null = null
 
+    private static sttBusy = false
+    private static sttQueued: { chunkWithOverlap: string; newWordsCount: number; confidence?: number } | null = null
+
     static async processSTTChunk(chunk: { chunkWithOverlap: string; newWordsCount: number; confidence?: number }) {
         this.triggerBackgroundPreload()
+        // Keep only the latest chunk. Cancelling an in-flight local Bible search on every
+        // STT tick was dropping detections after the first handful once search got slower.
+        this.sttQueued = chunk
+        if (this.sttBusy) return
+        this.sttBusy = true
+        try {
+            while (this.sttQueued) {
+                const next = this.sttQueued
+                this.sttQueued = null
+                await this.processOneSTTChunk(next)
+            }
+        } finally {
+            this.sttBusy = false
+        }
+    }
 
-        const searchId = ++this.latestSearchId
-        const isCancelled = () => searchId !== this.latestSearchId
-
+    private static async processOneSTTChunk(chunk: { chunkWithOverlap: string; newWordsCount: number; confidence?: number }) {
         // Beacon Worship: explicit local hymn-number commands are resolved against the
         // local library BEFORE Scripture detection or any LLM fallback, so they never
         // reach a cloud provider and never depend on the auto-present Scripture policy.
         const hymnCommand = detectHymnCommand(chunk.chunkWithOverlap)
         if (hymnCommand) {
-            await handleHymnCommand(hymnCommand)
-            return
+            const resolution = await handleHymnCommand(hymnCommand)
+            // Duplicate / already-live must NOT swallow later verse detections in the same overlap window.
+            if (resolution.status !== "duplicate" && resolution.status !== "already_live") return
         }
 
         // Explicit Scripture navigation / version commands. Navigation is resolved against
@@ -48,20 +65,18 @@ export class AiManager {
         // reference-type match; version changes stay local-only and suggestion-based.
         const navCommand = detectVerseNavigationCommand(chunk.chunkWithOverlap)
         if (navCommand) {
-            await this.handleVerseNavigation(navCommand)
-            return
+            const handled = await this.handleVerseNavigation(navCommand)
+            if (handled) return
         }
         const versionCommand = detectVersionChangeCommand(chunk.chunkWithOverlap)
         // Sermon console is for verse detections, not Bible-version switching. A preaching
         // phrase must never swallow the rest of the chunk (and toast "local Bibles only").
         if (versionCommand && get(activeDrawerTab) !== "sermon") {
-            await this.handleVersionChange(versionCommand)
-            return
+            const handled = await this.handleVersionChange(versionCommand)
+            if (handled) return
         }
 
-        const stringMatch = await this.stringDetection(chunk.chunkWithOverlap, isCancelled)
-        if (isCancelled()) return
-
+        const stringMatch = await this.stringDetection(chunk.chunkWithOverlap)
         if (stringMatch) {
             this.newMatch(stringMatch)
             this.lastMatch = Date.now()
@@ -77,8 +92,9 @@ export class AiManager {
         // Cloud-capable providers (Anthropic/OpenAI/Google) never receive booth audio transcripts.
         if (llmManager.providerId !== "ollama") return
 
-        // only report to LLM if nothing is auto detected
+        const searchId = ++this.latestSearchId
         const llmMatch = await llmManager.detectMatch(chunk)
+        if (searchId !== this.latestSearchId) return
         if (llmMatch) {
             this.newMatch(llmMatch)
             this.lastMatch = Date.now()
@@ -268,22 +284,22 @@ export class AiManager {
     /////
     // Explicit Scripture commands (next/previous verse, version change).
 
-    private static async handleVerseNavigation(command: VerseNavigationCommand) {
+    private static async handleVerseNavigation(command: VerseNavigationCommand): Promise<boolean> {
         const now = Date.now()
-        if (this.lastNavCommand && this.lastNavCommand.direction === command.direction && this.lastNavCommand.unit === command.unit && now - this.lastNavCommand.time < SCRIPTURE_COMMAND_DEDUPE_MS) return
+        if (this.lastNavCommand && this.lastNavCommand.direction === command.direction && this.lastNavCommand.unit === command.unit && now - this.lastNavCommand.time < SCRIPTURE_COMMAND_DEDUPE_MS) return false
         this.lastNavCommand = { direction: command.direction, unit: command.unit, time: now }
 
         const activeBibleId = get(drawerTabsData)?.scripture?.activeSubTab
         const scriptureData = activeBibleId ? get(scriptures)[activeBibleId] : null
         if (!activeBibleId || !scriptureData || scriptureData.api) {
             this.reportScriptureCommandUnavailable(command.rationale, "ai.nav_no_local_bible")
-            return
+            return true
         }
 
         const detector = await BibleCacheManager.getCache(activeBibleId)
         if (!detector) {
             this.reportScriptureCommandUnavailable(command.rationale, "ai.nav_no_local_bible")
-            return
+            return true
         }
 
         const resolution = resolveVerseNavigation(command.direction, this.liveContent, detector.referenceIndex, command.unit)
@@ -296,28 +312,30 @@ export class AiManager {
                 scriptureMatchType: "reference",
                 rationale: command.rationale
             })
-            return
+            return true
         }
 
         const key =
             resolution.reason === "no_current" ? "ai.nav_no_current" : resolution.reason === "end_of_book" ? "ai.nav_end_of_book" : resolution.reason === "start_of_book" ? "ai.nav_start_of_book" : "ai.nav_unknown_chapter"
         this.reportScriptureCommandUnavailable(command.rationale, key)
+        return true
     }
 
-    private static async handleVersionChange(command: VersionChangeCommand) {
+    private static async handleVersionChange(command: VersionChangeCommand): Promise<boolean> {
         const now = Date.now()
         const query = command.query.toLowerCase()
-        if (this.lastVersionCommand && this.lastVersionCommand.query === query && now - this.lastVersionCommand.time < SCRIPTURE_COMMAND_DEDUPE_MS) return
+        if (this.lastVersionCommand && this.lastVersionCommand.query === query && now - this.lastVersionCommand.time < SCRIPTURE_COMMAND_DEDUPE_MS) return false
         this.lastVersionCommand = { query, time: now }
 
         // detectBibleVersion only returns LOCAL, non-active versions; anything else is unavailable
         const match = await detectBibleVersion(command.query)
         if (match) {
             this.newMatch(match)
-            return
+            return true
         }
 
         this.reportScriptureCommandUnavailable(command.rationale, "ai.version_unavailable", [command.query])
+        return true
     }
 
     private static reportScriptureCommandUnavailable(rationale: string, messageKey: string, replaceValues: string[] = []) {

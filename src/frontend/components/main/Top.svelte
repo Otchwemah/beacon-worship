@@ -224,7 +224,7 @@
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
-        color: var(--brand-gold, #dbac64);
+        color: var(--secondary);
     }
 
     /* .logo {

@@ -1,7 +1,9 @@
 <script lang="ts">
-    import { hymnOptions, hymnSearchValue } from "../../../stores"
+    import { aiSuggestions, hymnOptions, hymnSearchValue, outLocked } from "../../../stores"
     import { translateText } from "../../../utils/language"
     import Icon from "../../helpers/Icon.svelte"
+    import { startShow } from "../../helpers/showActions"
+    import MaterialButton from "../../inputs/MaterialButton.svelte"
     import MaterialZoom from "../../inputs/MaterialZoom.svelte"
 
     // Beacon Worship — Hymns toolbar, directly above the grid it filters.
@@ -16,6 +18,7 @@
     $: isSearching = Boolean(($hymnSearchValue || "").trim().length)
     $: mode = $hymnOptions.mode || "grid"
     $: columns = $hymnOptions.columns || 4
+    $: hymnHit = $aiSuggestions.find((item) => item.kind === "hymn" && item.hymnShowId)
 
     function clearSearch() {
         hymnSearchValue.set("")
@@ -49,6 +52,12 @@
             </button>
         {/if}
     </div>
+
+    {#if hymnHit}
+        <MaterialButton variant="contained" icon="play" disabled={$outLocked} title="Send this hymn live" on:click={() => hymnHit?.hymnShowId && startShow(hymnHit.hymnShowId)}>
+            Go live
+        </MaterialButton>
+    {/if}
 
     <span class="count" title={translateText("hymns.count_hint")}>
         {#if isSearching}{count} / {total}{:else}{total}{/if}
