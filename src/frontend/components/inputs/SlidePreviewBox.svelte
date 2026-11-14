@@ -84,7 +84,6 @@
         position: relative;
         width: 100%;
         overflow: hidden;
-        border-radius: 3px;
         background: #101820;
     }
 

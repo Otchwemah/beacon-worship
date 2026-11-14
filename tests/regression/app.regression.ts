@@ -240,7 +240,10 @@ test.describe("hymn selection", () => {
         const nav = window.locator(".navigation, .categories").first()
         await expect(nav).toBeVisible()
 
-        const loadFolder = window.locator('button[title*="folder" i]').first()
+        // MaterialButton renders its tooltip as data-title, NOT title. The old
+        // button[title*=folder] selector never matched, which failed this spec on both
+        // platforms in Validation #15/#17/#20.
+        const loadFolder = window.locator('button[data-title*="folder" i]').first()
         await expect(loadFolder).toBeVisible()
 
         // it must sit to the LEFT of the grid it populates
@@ -476,6 +479,57 @@ test.describe("hymn thumbnails come from the first slide", () => {
         const hasImage = await thumb.locator("img").count()
         const hasFallback = await thumb.locator("svg").count()
         expect(hasCanvas + hasImage + hasFallback).toBeGreaterThan(0)
+    })
+})
+
+test.describe("square corners", () => {
+    test("control-interface chrome has no rounded corners", async () => {
+        await openTab(window, "hymns")
+
+        // sample real, visible chrome across the window rather than every node
+        const selectors = [".drawer", ".hymns-panel", "span.tabs:has(#hymns)", "input.hymn-search-input"]
+        let checked = 0
+
+        for (const selector of selectors) {
+            const elem = window.locator(selector).first()
+            if (!(await elem.count())) continue
+            if (!(await elem.isVisible())) continue
+
+            const radii = await elem.evaluate((node) => {
+                const cs = getComputedStyle(node)
+                return [cs.borderTopLeftRadius, cs.borderTopRightRadius, cs.borderBottomLeftRadius, cs.borderBottomRightRadius]
+            })
+            expect(radii.every((r) => parseFloat(r) === 0), `${selector} should be square, got ${radii.join(", ")}`).toBe(true)
+            checked++
+        }
+
+        expect(checked, "expected to measure at least one chrome element").toBeGreaterThan(0)
+    })
+
+    test("a hymn thumbnail is square and fills its tile", async () => {
+        await openTab(window, "hymns")
+
+        const thumb = window.locator(".hymn-card .thumb").first()
+        test.skip((await thumb.count()) === 0, "No hymns imported on this runner")
+
+        const radius = await thumb.evaluate((node) => getComputedStyle(node).borderTopLeftRadius)
+        expect(parseFloat(radius)).toBe(0)
+
+        // square corners must not change the box: the tile keeps its 16:9 shape
+        const box = (await thumb.boundingBox())!
+        expect(box.width).toBeGreaterThan(10)
+        expect(Math.abs(box.width / box.height - 16 / 9)).toBeLessThan(0.2)
+    })
+
+    test("the loading spinner stays circular", async () => {
+        await dismissPopups(window)
+
+        // the spinner is a circle by function, not a rounded corner; it is exempt
+        const loader = window.locator(".loader").first()
+        test.skip((await loader.count()) === 0, "No spinner on screen right now")
+
+        const radius = await loader.evaluate((node) => getComputedStyle(node).borderTopLeftRadius)
+        expect(parseFloat(radius)).toBeGreaterThan(0)
     })
 })
 

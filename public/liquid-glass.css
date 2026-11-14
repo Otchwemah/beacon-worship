@@ -13,9 +13,11 @@
 
 main.bw-control {
     --bw-glass-blur: 16px;
-    --bw-glass-radius: 12px;
-    --bw-glass-radius-sm: 8px;
-    --bw-media-radius: 10px;
+    /* Beacon Worship: square corners (see square-corners.css). Kept at 0 here too so the
+       glass layer never reintroduces rounding if that file is ever removed. */
+    --bw-glass-radius: 0px;
+    --bw-glass-radius-sm: 0px;
+    --bw-media-radius: 0px;
     --bw-glass-border: rgb(255 255 255 / 0.14);
     --bw-glass-highlight: rgb(255 255 255 / 0.06);
     --bw-glass-shadow: 0 10px 30px rgb(0 0 0 / 0.28);

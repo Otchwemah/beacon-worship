@@ -461,7 +461,7 @@
         justify-content: center !important;
         text-align: center !important;
         background: #2b303c !important;
-        border-radius: 4px !important;
+        border-radius: 0 !important;
         box-shadow: none !important;
         transition:
             background-color 0.2s,
@@ -475,7 +475,7 @@
     :global(.obs-btn) {
         width: 100% !important;
         text-align: left !important;
-        border-radius: 4px !important;
+        border-radius: 0 !important;
         box-shadow: none !important;
         justify-content: flex-start !important;
         padding: 0.5em 0.7em !important;
