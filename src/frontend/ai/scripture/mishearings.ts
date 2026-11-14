@@ -14,9 +14,29 @@ export const COMMON_MISHEARINGS: Record<string, string> = {
     lamentation: "lamentations",
     jose: "joseph",
     hose: "hosea",
+    hosiah: "hosea",
+    hosaia: "hosea",
     jewel: "joel",
     mica: "micah",
     johny: "john",
+    donut: "jonah",
+    donuts: "jonah",
+    isiah: "isaiah",
+    izaiah: "isaiah",
+    obadayah: "obadiah",
+    obadaya: "obadiah",
+    obediah: "obadiah",
+    zachariah: "zechariah",
+    zacharia: "zechariah",
+    habakuk: "habakkuk",
+    deutronomy: "deuteronomy",
+    deuteromony: "deuteronomy",
+    ecclesiastic: "ecclesiastes",
+    ecclesiastics: "ecclesiastes",
+    malakai: "malachi",
+    thessalonian: "thessalonians",
+    philippian: "philippians",
+    levitic: "leviticus",
     romance: "romans",
     corinthian: "corinthians",
     galatian: "galatians",
@@ -69,7 +89,6 @@ export const COMMON_MISHEARINGS: Record<string, string> = {
     sec: "second",
     turd: "third",
     ford: "fourth",
-    for: "four",
 
     // Other Mishearings
     cha: "chapter"
@@ -77,6 +96,9 @@ export const COMMON_MISHEARINGS: Record<string, string> = {
 
 export function normalizeMishearings(text: string): string {
     let normalized = text.toLowerCase()
+
+    // "for" as "four" only after a chapter/verse cue. Never rewrite "for God so loved".
+    normalized = normalized.replace(/\b((?:chapter|chapters|verse|verses|chapitre|capítulo|capitulo|kapitel|capitolo|hoofdstuk|kapittel)\s+)for\b/giu, "$1four")
 
     const mishearingKeys = Object.keys(COMMON_MISHEARINGS).sort((a, b) => b.length - a.length)
     const mishearingRegex = new RegExp(`(?<!\\p{L})(${mishearingKeys.join("|")})(?!\\p{L})`, "giu")

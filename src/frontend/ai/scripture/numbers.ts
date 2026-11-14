@@ -1,4 +1,5 @@
 import { COMPOUND_CONNECTORS, HUNDREDS_WORDS, MULTILINGUAL_RANGE_WORDS, ORDINAL_UNIT_WORDS, REVERSE_COMPOUND_CONNECTORS, REVERSE_COMPOUND_TENS, REVERSE_COMPOUND_UNITS, SPECIAL_COMPLEX_NUMBERS, TEEN_WORDS, TENS_WORDS, UNIT_WORDS } from "./numberDictionary"
+import { CHAPTER_KEYWORDS, VERSE_KEYWORDS } from "./referenceDictionary"
 
 // Combined maps for single word replacements
 export const ALL_NUMBER_WORDS: Record<string, number> = {
@@ -85,7 +86,14 @@ export function normalizeNumbers(text: string): string {
     })
 
     // 5. Convert single-word cardinal and ordinal numbers ("trois" -> "3", "seize" -> "16", "eighth" -> "8")
-    normalized = normalized.replace(SINGLE_NUMBER_REGEX, (match) => {
+    normalized = normalized.replace(SINGLE_NUMBER_REGEX, (match, _capture, offset, full) => {
+        // Norwegian "to" = 2. English "to" is a preposition ("turn with me to John").
+        // Only convert "to" when the previous token is already numeric or a chapter/verse cue.
+        if (match.toLowerCase() === "to") {
+            const prev = String(full).slice(0, offset).trim().split(/\s+/).pop()?.toLowerCase() || ""
+            const numericContext = /^\d+$/.test(prev) || prev in ALL_NUMBER_WORDS || CHAPTER_KEYWORDS.includes(prev) || VERSE_KEYWORDS.includes(prev)
+            if (!numericContext) return match
+        }
         const val = ALL_NUMBER_WORDS[match.toLowerCase()]
         return val !== undefined ? val.toString() : match
     })

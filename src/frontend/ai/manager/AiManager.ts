@@ -24,7 +24,7 @@ export class AiManager {
     private static latestSearchId: number = 0
 
     // dedupe for explicit Scripture commands (repeated transcript chunks)
-    private static lastNavCommand: { direction: string; time: number } | null = null
+    private static lastNavCommand: { direction: string; unit: string; time: number } | null = null
     private static lastVersionCommand: { query: string; time: number } | null = null
 
     static async processSTTChunk(chunk: { chunkWithOverlap: string; newWordsCount: number; confidence?: number }) {
@@ -257,8 +257,8 @@ export class AiManager {
 
     private static async handleVerseNavigation(command: VerseNavigationCommand) {
         const now = Date.now()
-        if (this.lastNavCommand && this.lastNavCommand.direction === command.direction && now - this.lastNavCommand.time < SCRIPTURE_COMMAND_DEDUPE_MS) return
-        this.lastNavCommand = { direction: command.direction, time: now }
+        if (this.lastNavCommand && this.lastNavCommand.direction === command.direction && this.lastNavCommand.unit === command.unit && now - this.lastNavCommand.time < SCRIPTURE_COMMAND_DEDUPE_MS) return
+        this.lastNavCommand = { direction: command.direction, unit: command.unit, time: now }
 
         const activeBibleId = get(drawerTabsData)?.scripture?.activeSubTab
         const scriptureData = activeBibleId ? get(scriptures)[activeBibleId] : null
@@ -273,7 +273,7 @@ export class AiManager {
             return
         }
 
-        const resolution = resolveVerseNavigation(command.direction, this.liveContent, detector.referenceIndex)
+        const resolution = resolveVerseNavigation(command.direction, this.liveContent, detector.referenceIndex, command.unit)
         if (resolution.status === "navigate") {
             // hand through the normal policy: reference-type, operator confidence decides live vs preview
             this.newMatch({

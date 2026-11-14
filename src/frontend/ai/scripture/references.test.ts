@@ -13,6 +13,7 @@ const mockCacheData: BibleCacheData = {
         ["juan 3", { bookName: "Juan", chapterNumber: 3, startVerseId: 129, verseCount: 36 }],
         ["johannes 3", { bookName: "Johannes", chapterNumber: 3, startVerseId: 165, verseCount: 36 }],
         ["john 3", { bookName: "John", chapterNumber: 3, startVerseId: 201, verseCount: 36 }],
+        ["numbers 6", { bookName: "Numbers", chapterNumber: 6, startVerseId: 260, verseCount: 27 }],
         ["1 jean 1", { bookName: "1 Jean", chapterNumber: 1, startVerseId: 237, verseCount: 10 }],
         ["1 johannes 1", { bookName: "1 Johannes", chapterNumber: 1, startVerseId: 247, verseCount: 10 }]
     ]),
@@ -77,6 +78,16 @@ describe("normalizeReferences - Multilingual", () => {
         const numNorm = normalizeNumbers("John chapter three verse sixteen")
         expect(numNorm).toBe("john chapter 3 verse 16")
         expect(normalizeReferences(numNorm, mockCacheData)).toBe("john 3:16")
+    })
+
+    it("strips sermon lead-ins before the book name", () => {
+        expect(normalizeReferences("turn with me to john chapter 3 verse 16", mockCacheData).replace(/\s+/g, " ").trim()).toMatch(/john 3:16/i)
+    })
+
+    it("treats spoken Number as the book of Numbers only in a citation", () => {
+        expect(normalizeReferences("Number chapter 6 verse 24", mockCacheData)).toBe("Numbers 6:24")
+        expect(normalizeReferences("Number 6:24", mockCacheData)).toBe("Numbers 6:24")
+        expect(normalizeReferences("a number of people", mockCacheData)).toBe("a number of people")
     })
 
     it("normalizes spoken Norwegian references", () => {

@@ -7,6 +7,8 @@ describe("normalizeNumbers - Multilingual", () => {
         expect(normalizeNumbers("twenty five")).toBe("25")
         expect(normalizeNumbers("one hundred and nineteen")).toBe("119")
         expect(normalizeNumbers("verse 1 through 6")).toBe("verse 1-6")
+        // English preposition "to" must not become 2 ("turn with me to John" is not 2 John)
+        expect(normalizeNumbers("turn with me to john chapter 3 verse 16")).toBe("turn with me to john chapter 3 verse 16")
     })
 
     it("normalizes French numbers", () => {
@@ -63,6 +65,7 @@ describe("normalizeNumbers - Multilingual", () => {
         expect(normalizeNumbers("tjuefem")).toBe("25")
         expect(normalizeNumbers("femogtjue")).toBe("25")
         expect(normalizeNumbers("to hundre og seksten")).toBe("216")
+        expect(normalizeNumbers("Johannes kapittel to vers seksten")).toBe("johannes kapittel 2 vers 16")
         expect(normalizeNumbers("vers 1 til 6")).toBe("vers 1-6")
         expect(normalizeNumbers("første")).toBe("1")
     })

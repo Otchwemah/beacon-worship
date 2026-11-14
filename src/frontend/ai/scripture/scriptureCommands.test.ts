@@ -12,6 +12,7 @@ function index(): ReferenceIndex {
 describe("detectVerseNavigationCommand", () => {
     it("detects next verse", () => {
         expect(detectVerseNavigationCommand("next verse")?.direction).toBe("next")
+        expect(detectVerseNavigationCommand("next verse")?.unit).toBe("verse")
         expect(detectVerseNavigationCommand("go to the next verse please")?.direction).toBe("next")
         expect(detectVerseNavigationCommand("advance verses")?.direction).toBe("next")
     })
@@ -23,9 +24,15 @@ describe("detectVerseNavigationCommand", () => {
         expect(detectVerseNavigationCommand("prev verse")?.direction).toBe("previous")
     })
 
+    it("detects next and previous chapter", () => {
+        expect(detectVerseNavigationCommand("next chapter")).toEqual(expect.objectContaining({ direction: "next", unit: "chapter" }))
+        expect(detectVerseNavigationCommand("the next chapter")).toEqual(expect.objectContaining({ direction: "next", unit: "chapter" }))
+        expect(detectVerseNavigationCommand("previous chapter")).toEqual(expect.objectContaining({ direction: "previous", unit: "chapter" }))
+        expect(detectVerseNavigationCommand("last chapter")).toEqual(expect.objectContaining({ direction: "previous", unit: "chapter" }))
+    })
+
     it("does not fire on unrelated text", () => {
         expect(detectVerseNavigationCommand("John 3:16")).toBeNull()
-        expect(detectVerseNavigationCommand("the next chapter")).toBeNull()
         expect(detectVerseNavigationCommand("")).toBeNull()
     })
 })
@@ -84,5 +91,17 @@ describe("resolveVerseNavigation", () => {
 
     it("reports unknown chapter", () => {
         expect(resolveVerseNavigation("next", "John 99:1", index())).toEqual({ status: "unavailable", reason: "unknown_chapter" })
+    })
+
+    it("advances a whole chapter", () => {
+        expect(resolveVerseNavigation("next", "John 3:16", index(), "chapter")).toEqual({ status: "navigate", content: "John 4:1" })
+    })
+
+    it("goes back a whole chapter to verse 1", () => {
+        expect(resolveVerseNavigation("previous", "John 4:12", index(), "chapter")).toEqual({ status: "navigate", content: "John 3:1" })
+    })
+
+    it("reports end of book for next chapter", () => {
+        expect(resolveVerseNavigation("next", "Psalms 23:1", index(), "chapter")).toEqual({ status: "unavailable", reason: "end_of_book" })
     })
 })

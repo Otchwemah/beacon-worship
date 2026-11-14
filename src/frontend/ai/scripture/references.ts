@@ -4,6 +4,17 @@ import { CHAPTER_PATTERN, JOINER_PATTERN, normalizeBookName, OF_PATTERN, ORDINAL
 export function normalizeReferences(text: string, cacheData: BibleCacheData): string {
     let normalized = text
 
+    // 0. Ghanaian/ASR: "Number" for the book of Numbers. Only when it is clearly a
+    // book citation ("Number chapter 6", "Number 6:24") — never a bare "number 6".
+    normalized = normalized.replace(/\bnumber\s+(?=chapter\b)/giu, "Numbers ")
+    normalized = normalized.replace(/\bnumber\s+(\d+:\d+)/giu, "Numbers $1")
+
+    // 0b. Sermon lead-ins so "turn with me to John 3:16" does not glue "to" onto the book.
+    normalized = normalized.replace(
+        /\b(?:turn\s+with\s+me\s+to|turn\s+(?:unto|to)|open\s+(?:your|the)\s+bibles?\s+to|our\s+(?:text|reading)\s+is|let\s+us\s+go\s+to|go\s+with\s+me\s+to|please\s+stand\s+(?:with\s+me\s+)?(?:to|for))\b/giu,
+        " "
+    )
+
     // 1. Remove punctuation that breaks numbered books and normalize ordinal book prefixes (e.g., "1, john 4" or "first, john" -> "1 john")
     normalized = normalized.replace(new RegExp(`\\b([1-3]|${ORDINAL_PREFIX_PATTERN})\\s*[,.\\-_]\\s*([\\p{L}]+)`, "giu"), "$1 $2")
     normalized = normalized.replace(new RegExp(`\\b(${ORDINAL_PREFIX_PATTERN})\\s+([\\p{L}]+)`, "giu"), (match) => normalizeBookName(match))
@@ -47,7 +58,7 @@ export function normalizeReferences(text: string, cacheData: BibleCacheData): st
     // 8. Standard spoken reference conversion: "Mark chapter 8 and 22", "Mark 8 verse 22" or "Mark 8 and 22" -> "Mark 8:22"
     const standardRefRegex = new RegExp(`\\b([1-3]?\\s*[\\p{L}]+?)(?:\\s+(?:${CHAPTER_PATTERN}))?\\s+(\\d+)\\s+((?:${JOINER_PATTERN})|(?:${VERSE_PATTERN}))\\s+(\\d+)(?:\\s*(?:[-–—]|${RANGE_PATTERN})\\s*(\\d+))?\\b`, "giu")
     normalized = normalized.replace(standardRefRegex, (match, book, chap, joiner, vStart, vEnd) => {
-        const cleanBook = book.trim().replace(new RegExp(`\\s+(?:${CHAPTER_PATTERN})$`, "iu"), "")
+        const cleanBook = cleanCapturedBook(book)
         const joinerStr = (joiner || "").toLowerCase()
         const isJoinerWord = new RegExp(`^(?:${JOINER_PATTERN})$`, "i").test(joinerStr)
         // "Genesis 1 and 2" is two chapters, not chapter 1 verse 2
@@ -87,6 +98,14 @@ export function normalizeReferences(text: string, cacheData: BibleCacheData): st
     })
 
     return normalized
+}
+
+function cleanCapturedBook(book: string): string {
+    return book
+        .trim()
+        .replace(new RegExp(`\\s+(?:${CHAPTER_PATTERN})$`, "iu"), "")
+        .replace(new RegExp(`^(?:${THE_PATTERN}|to|unto|into|onto|with|from|in)\\s+`, "iu"), "")
+        .trim()
 }
 
 // Resolves single-chapter books dynamically using reference index metadata.

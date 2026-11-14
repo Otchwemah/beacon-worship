@@ -25,12 +25,17 @@ export class BibleSearchDetector {
             const matchIndex = refMatch.index ?? 0
             const matchLength = refMatch[0].length
 
-            if (cleanInput.length - (matchIndex + matchLength) > 120) continue
-
             const matchedBookName = normalizeBookName(refMatch[1])
 
             const chapterNum = parseInt(refMatch[2], 10)
             const startVerseNum = refMatch[3] ? parseInt(refMatch[3], 10) : undefined
+
+            // Chapter-only matches are weak, so they must still be near the end of the
+            // chunk. A verse-numbered citation must NOT be dropped just because the
+            // pastor kept preaching after naming it — that was dropping John 3:16 the
+            // moment the quote itself was longer than 120 characters, then falling
+            // through to slower content-matching (preview-only). Loghema/Pewbeam win
+            // on this exact case; take the last verse-level citation in the chunk.
             const endVerseNum = refMatch[4] ? parseInt(refMatch[4], 10) : undefined
 
             const refKey = `${matchedBookName.toLowerCase()} ${chapterNum}`
@@ -38,6 +43,7 @@ export class BibleSearchDetector {
             if (!chapterData) continue
 
             if (!startVerseNum) {
+                if (cleanInput.length - (matchIndex + matchLength) > 120) continue
                 if (chapterData.verseCount < 1) continue
                 return {
                     type: "scripture",
@@ -77,7 +83,9 @@ export class BibleSearchDetector {
             const matchIndex = match.index ?? 0
             const matchLength = match[0].length
 
-            if (cleanInput.length - (matchIndex + matchLength) > 80) continue
+            // Same rule as findReferenceMatch: a verse cue in the current passage is
+            // still valid if the pastor kept talking after it.
+            if (!currentlyOutputted && cleanInput.length - (matchIndex + matchLength) > 80) continue
 
             const startVerseNum = parseInt(match[1], 10)
             const endVerseNum = match[2] ? parseInt(match[2], 10) : undefined
@@ -418,6 +426,14 @@ export class BibleSearchDetector {
         if (this.DEBUG_MODE) console.log("[DETECTION] Reference match result:", refMatch)
 
         if (isCancelled?.()) return null
+
+        // FAST PATH. An explicit citation is the match. Do not wait on four TF-IDF
+        // scans of the whole Bible, and do not let a paraphrased content hit of a
+        // *different* verse override it (the previous `content.confidence >= 80`
+        // branch did exactly that). Content matching stays for quotes with no citation.
+        if (refMatch && refMatch.scriptureMatchType === "reference" && refMatch.confidence >= 75) {
+            return refMatch
+        }
 
         // 1. Run active-context and fresh-context evaluations simultaneously
         const activeRawPromise = this.findContentMatch(transcript, currentlyOutputted, isCancelled)

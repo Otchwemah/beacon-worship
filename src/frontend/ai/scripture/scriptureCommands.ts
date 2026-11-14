@@ -9,9 +9,11 @@
  */
 
 export type VerseDirection = "next" | "previous"
+export type NavigationUnit = "verse" | "chapter"
 
 export interface VerseNavigationCommand {
     direction: VerseDirection
+    unit: NavigationUnit
     confidence: number
     rationale: string
     raw: string
@@ -19,15 +21,23 @@ export interface VerseNavigationCommand {
 
 const NEXT_VERSE_REGEX = /\b(?:next|forward|advance)\s+(?:verse|verses)\b/i
 const PREVIOUS_VERSE_REGEX = /\b(?:previous|prev|back|last)\s+(?:verse|verses)\b/i
+const NEXT_CHAPTER_REGEX = /\b(?:next|forward|advance)\s+chapter\b/i
+const PREVIOUS_CHAPTER_REGEX = /\b(?:previous|prev|back|last)\s+chapter\b/i
 
 export function detectVerseNavigationCommand(text: string): VerseNavigationCommand | null {
     if (!text || !text.trim()) return null
 
-    const next = text.match(NEXT_VERSE_REGEX)
-    if (next) return { direction: "next", confidence: 98, rationale: `Explicit next-verse command: "${next[0].trim()}".`, raw: next[0].trim() }
+    const nextVerse = text.match(NEXT_VERSE_REGEX)
+    if (nextVerse) return { direction: "next", unit: "verse", confidence: 98, rationale: `Explicit next-verse command: "${nextVerse[0].trim()}".`, raw: nextVerse[0].trim() }
 
-    const previous = text.match(PREVIOUS_VERSE_REGEX)
-    if (previous) return { direction: "previous", confidence: 98, rationale: `Explicit previous-verse command: "${previous[0].trim()}".`, raw: previous[0].trim() }
+    const previousVerse = text.match(PREVIOUS_VERSE_REGEX)
+    if (previousVerse) return { direction: "previous", unit: "verse", confidence: 98, rationale: `Explicit previous-verse command: "${previousVerse[0].trim()}".`, raw: previousVerse[0].trim() }
+
+    const nextChapter = text.match(NEXT_CHAPTER_REGEX)
+    if (nextChapter) return { direction: "next", unit: "chapter", confidence: 98, rationale: `Explicit next-chapter command: "${nextChapter[0].trim()}".`, raw: nextChapter[0].trim() }
+
+    const previousChapter = text.match(PREVIOUS_CHAPTER_REGEX)
+    if (previousChapter) return { direction: "previous", unit: "chapter", confidence: 98, rationale: `Explicit previous-chapter command: "${previousChapter[0].trim()}".`, raw: previousChapter[0].trim() }
 
     return null
 }
@@ -78,14 +88,23 @@ export type VerseNavigationResolution =
     | { status: "navigate"; content: string }
     | { status: "unavailable"; reason: "no_current" | "unknown_chapter" | "end_of_book" | "start_of_book" }
 
-/** Resolve a next/previous-verse command against the local Bible reference index. Pure. */
-export function resolveVerseNavigation(direction: VerseDirection, currentRef: string | null | undefined, referenceIndex: ReferenceIndex): VerseNavigationResolution {
+/** Resolve a next/previous verse or chapter command against the local Bible reference index. Pure. */
+export function resolveVerseNavigation(direction: VerseDirection, currentRef: string | null | undefined, referenceIndex: ReferenceIndex, unit: NavigationUnit = "verse"): VerseNavigationResolution {
     const current = currentRef ? parseScriptureReference(currentRef) : null
     if (!current) return { status: "unavailable", reason: "no_current" }
 
     const key = `${current.book.toLowerCase()} ${current.chapter}`
     const chapterData = referenceIndex.get(key)
     if (!chapterData) return { status: "unavailable", reason: "unknown_chapter" }
+
+    if (unit === "chapter") {
+        const delta = direction === "next" ? 1 : -1
+        const neighbour = referenceIndex.get(`${current.book.toLowerCase()} ${current.chapter + delta}`)
+        if (neighbour && neighbour.verseCount >= 1) {
+            return { status: "navigate", content: `${neighbour.bookName} ${neighbour.chapterNumber}:1` }
+        }
+        return { status: "unavailable", reason: direction === "next" ? "end_of_book" : "start_of_book" }
+    }
 
     if (direction === "next") {
         if (current.verse < chapterData.verseCount) {
