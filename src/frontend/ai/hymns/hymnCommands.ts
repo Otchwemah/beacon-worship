@@ -20,16 +20,19 @@ export interface HymnCommand {
 
 // "hymn 108", "hymns number 108", "hymnal no. 108", "hymn #108".
 // normalizeNumbers() first turns spoken numbers ("one hundred eight") into digits.
-const HYMN_COMMAND_REGEX = /\b(?:hymn|hymns|hymnal)\s*(?:number|no\.?|#)?\s*(\d{1,4})\b/i
+const HYMN_COMMAND_REGEX = /\b(?:hymns?|hymnal)\s*(?:number|no\.?|#)?\s*(\d{1,4})\b/i
+// Nemotron often hears "hymn" as "him" / "hum". Require "number" or 2+ digits so
+// "give him 2" does not fire, while "him 108" / "him number 8" still do.
+const HYMN_MISHEAR_REGEX = /\b(?:him|hum)\s+(?:(?:number|no\.?|#)\s*(\d{1,4})|(\d{2,4}))\b/i
 
 export function detectHymnCommand(text: string): HymnCommand | null {
     if (!text || !text.trim()) return null
 
     const normalized = normalizeNumbers(text)
-    const match = normalized.match(HYMN_COMMAND_REGEX)
+    const match = normalized.match(HYMN_COMMAND_REGEX) || normalized.match(HYMN_MISHEAR_REGEX)
     if (!match) return null
 
-    const number = Number(match[1])
+    const number = Number(match[1] || match[2])
     if (!Number.isFinite(number) || number <= 0) return null
 
     const explicitNumberWord = /\b(?:number|no\.?|#)/i.test(match[0])

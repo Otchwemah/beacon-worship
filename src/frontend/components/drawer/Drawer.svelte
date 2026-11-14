@@ -188,6 +188,13 @@
         } else if (ctrlKey === "d" && !isTypingTarget(document.activeElement)) {
             if (!$selected?.id && !$activeEdit.items.length) click(null)
         } else if (e.key === "Enter") {
+            if ($activeDrawerTab === "sermon") {
+                const query = (document.activeElement === searchElem ? searchValue : "").trim() || searchValue.trim()
+                if (!query) return
+                e.preventDefault()
+                import("./sermon/presentSermonVerse").then(({ goLiveSermonSearch }) => goLiveSermonSearch(query))
+                return
+            }
             if (document.activeElement !== searchElem || !searchValue.trim().length || !firstMatch || $focusMode) return
             if ($activeDrawerTab !== "shows") return
 

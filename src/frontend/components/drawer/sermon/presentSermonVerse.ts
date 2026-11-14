@@ -1,11 +1,23 @@
 import { get } from "svelte/store"
+import { uid } from "uid"
 import { activeScripture, drawerTabsData, outLocked } from "../../../stores"
 import { newToast } from "../../../utils/common"
 import { startShow } from "../../helpers/showActions"
 import { parseEngScriptureRefToNumbers, playScripture, resolveScriptureReference } from "../bible/scripture"
 import { formatSermonReference } from "./sermonReference"
-import { sermonLive, type SermonVerse } from "./sermonStore"
+import { sermonLive, sermonPreview, type SermonVerse } from "./sermonStore"
 import { lookupVerseText } from "./verseLookup"
+
+let presenting = false
+
+/** Type a reference (or hymn) and send it live without leaving the Sermon tab. */
+export async function goLiveSermonSearch(query: string): Promise<boolean> {
+    const reference = query.trim()
+    if (!reference) return false
+    const verse: SermonVerse = { id: uid(5), reference, text: "", confidence: 100, matchType: "reference", timestamp: Date.now(), kind: "scripture" }
+    sermonPreview.set(verse)
+    return presentSermonVerse(verse)
+}
 
 /**
  * Send a verse or hymn to the audience output WITHOUT leaving the Sermon tab.
@@ -14,10 +26,20 @@ import { lookupVerseText } from "./verseLookup"
  * activeScripture and call playScripture() directly. Hymns use startShow().
  */
 export async function presentSermonVerse(verse: SermonVerse): Promise<boolean> {
+    if (presenting) return false
     if (get(outLocked)) {
         newToast("main.locked")
         return false
     }
+    presenting = true
+    try {
+        return await presentSermonVerseInner(verse)
+    } finally {
+        presenting = false
+    }
+}
+
+async function presentSermonVerseInner(verse: SermonVerse): Promise<boolean> {
 
     if (verse.kind === "hymn") {
         if (!verse.hymnShowId) {
@@ -52,10 +74,14 @@ export async function presentSermonVerse(verse: SermonVerse): Promise<boolean> {
     await playScripture()
 
     const pretty = formatSermonReference(resolved)
-    const text = verse.text || (await lookupVerseText(pretty)) || (await lookupVerseText(verse.reference))
-    const live: SermonVerse = { ...verse, reference: pretty, text, timestamp: Date.now() }
+    const live: SermonVerse = { ...verse, reference: pretty, text: verse.text, timestamp: Date.now() }
     sermonLive.set(live)
     const { AiManager } = await import("../../../ai/manager/AiManager")
-    AiManager.liveContent = verse.reference
+    AiManager.liveContent = pretty
+    if (!verse.text) {
+        lookupVerseText(pretty).then((text) => {
+            if (text) sermonLive.update((current) => (current && current.id === live.id ? { ...current, text } : current))
+        })
+    }
     return true
 }

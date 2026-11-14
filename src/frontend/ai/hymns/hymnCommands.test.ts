@@ -36,6 +36,13 @@ describe("detectHymnCommand", () => {
         expect(detectHymnCommand("song 108")).toBeNull()
         expect(detectHymnCommand("hymn")).toBeNull()
         expect(detectHymnCommand("")).toBeNull()
+        expect(detectHymnCommand("give him 2")).toBeNull()
+    })
+
+    it("accepts STT mishearings of hymn as him/hum", () => {
+        expect(detectHymnCommand("him 108")?.number).toBe(108)
+        expect(detectHymnCommand("hum number 25")?.number).toBe(25)
+        expect(detectHymnCommand("him number 8")?.number).toBe(8)
     })
 
     it("rejects non-positive numbers", () => {

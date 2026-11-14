@@ -1,15 +1,16 @@
 <script lang="ts">
-    import { onDestroy, onMount, tick } from "svelte"
-    import { uid } from "uid"
+    import { onDestroy, onMount } from "svelte"
     import { SpeechToText } from "../../../ai/stt/stt"
-    import { Transcript } from "../../../ai/stt/transcript"
-    import { ai, aiSuggestions, aiSttStatus, outLocked, scriptures, sttTempDisabled, sttTranscript } from "../../../stores"
+    import { ai, aiSuggestions, aiSttStatus, outLocked, scriptures, sttTempDisabled } from "../../../stores"
     import { newToast } from "../../../utils/common"
     import MaterialButton from "../../inputs/MaterialButton.svelte"
+    import LiveTranscript from "./LiveTranscript.svelte"
     import MicLevel from "./MicLevel.svelte"
-    import { presentSermonVerse } from "./presentSermonVerse"
+    import { goLiveSermonSearch, presentSermonVerse } from "./presentSermonVerse"
     import { enqueueVerse, removeQueuedVerse, sermonGoLive, sermonLive, sermonMode, sermonPreview, sermonQueue, verseFromSuggestion, type SermonVerse } from "./sermonStore"
     import { lookupVerseText } from "./verseLookup"
+
+    export let searchValue = ""
 
     $: detections = $aiSuggestions.filter((item) => item.kind !== "scripture_command" && item.content)
     $: listening = $ai.enabled && !$sttTempDisabled && $aiSttStatus.state === "listening"
@@ -70,24 +71,34 @@
         if (next && $sermonPreview) presentSermonVerse($sermonPreview)
     }
 
-    let searchValue = ""
     async function searchReference() {
         const query = searchValue.trim()
         if (!query) return
-        const text = await lookupVerseText(query)
-        const verse: SermonVerse = { id: uid(5), reference: query, text, confidence: 100, matchType: "reference", timestamp: Date.now(), kind: "scripture" }
-        await play(verse)
+        await goLiveSermonSearch(query)
     }
 
     function onSearchKey(e: KeyboardEvent) {
         if (e.key === "Enter") {
             e.preventDefault()
+            e.stopPropagation()
             searchReference()
         }
     }
 
     function onKey(e: KeyboardEvent) {
         if (e.repeat) return
+        if (e.key === "Enter") {
+            const target = e.target as HTMLElement
+            if (target?.closest("input.search-input, input.drawer_search")) {
+                const value = ((target as HTMLInputElement).value || searchValue).trim()
+                if (!value) return
+                e.preventDefault()
+                e.stopPropagation()
+                searchValue = value
+                searchReference()
+            }
+            return
+        }
         const target = e.target as HTMLElement
         if (target?.closest("input, textarea, [contenteditable]")) return
         if (e.key === "l" || e.key === "L") {
@@ -96,24 +107,8 @@
         }
     }
 
-    let transcriptElem: HTMLElement | undefined
-    let transcriptPinned = true
-    const TRANSCRIPT_VIEW = 1800
-    $: rawTranscript = ($sttTranscript.finalized || "") + ($sttTranscript.unprocessed ? " " + $sttTranscript.unprocessed : "")
-    $: transcript = rawTranscript.length > TRANSCRIPT_VIEW ? rawTranscript.slice(-TRANSCRIPT_VIEW) : rawTranscript
-    $: if (transcriptPinned && transcript && transcriptElem) scrollTranscript()
-    async function scrollTranscript() {
-        await tick()
-        if (!transcriptElem || !transcriptPinned) return
-        transcriptElem.scrollTop = transcriptElem.scrollHeight
-    }
-    function onTranscriptScroll() {
-        if (!transcriptElem) return
-        transcriptPinned = transcriptElem.scrollHeight - transcriptElem.scrollTop - transcriptElem.clientHeight < 48
-    }
-
-    onMount(() => window.addEventListener("keydown", onKey))
-    onDestroy(() => window.removeEventListener("keydown", onKey))
+    onMount(() => window.addEventListener("keydown", onKey, true))
+    onDestroy(() => window.removeEventListener("keydown", onKey, true))
 </script>
 
 <div class="sermon-dash" data-sermon-dash>
@@ -134,21 +129,9 @@
         </button>
     </header>
 
-    <section class="panel transcript">
-        <h3>Live transcript {#if listening}<i class="pulse"></i>{/if}</h3>
-        <div class="scroll" bind:this={transcriptElem} on:scroll={onTranscriptScroll}>
-            {#if transcript.trim()}
-                <p class="body-text">{transcript}</p>
-            {:else}
-                <p class="empty">Press Start transcribing, then preach. Explicit references land in AI Detections. Paraphrases stay preview-only.</p>
-            {/if}
-        </div>
-        {#if transcript.trim()}
-            <div class="row">
-                <MaterialButton icon="copy" title="actions.copy" on:click={() => Transcript.copy()} />
-            </div>
-        {/if}
-    </section>
+    <div class="transcript">
+        <LiveTranscript {listening} />
+    </div>
 
     <section class="panel preview">
         <h3>Preview</h3>
@@ -333,6 +316,9 @@
     .transcript {
         grid-column: 1;
         grid-row: 2;
+        min-width: 0;
+        min-height: 0;
+        display: flex;
     }
     .preview {
         grid-column: 2;

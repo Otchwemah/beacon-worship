@@ -68,7 +68,7 @@
     {:else if id === "scripture"}
         <Scripture {active} bind:searchValue />
     {:else if id === "sermon"}
-        <Sermon />
+        <Sermon bind:searchValue />
     {:else if id === "calendar"}
         <Calendar {active} {searchValue} />
     {:else if id === "functions"}
