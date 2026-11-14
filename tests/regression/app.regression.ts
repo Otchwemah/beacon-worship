@@ -514,12 +514,21 @@ test.describe("square corners", () => {
     test("the loading spinner stays circular", async () => {
         await dismissPopups(window)
 
-        // the spinner is a circle by function, not a rounded corner; it is exempt
-        const loader = window.locator(".loader").first()
-        test.skip((await loader.count()) === 0, "No spinner on screen right now")
-
-        const radius = await loader.evaluate((node) => getComputedStyle(node).borderTopLeftRadius)
-        expect(parseFloat(radius)).toBeGreaterThan(0)
+        // Card.svelte wraps <Loader /> in a positioning div that is ALSO class="loader"
+        // and has no radius. The ring itself is Loader.svelte's .loader (animation: spin,
+        // border-radius: 50%). Measuring .loader.first() hits the wrapper and used to
+        // pass only because the blanket 50% exemption painted that wrapper round.
+        const radius = await window.evaluate(() => {
+            const nodes = Array.from(document.querySelectorAll(".loader"))
+            const ring = nodes.find((node) => {
+                const name = getComputedStyle(node).animationName || ""
+                return name !== "none" && name.length > 0
+            })
+            if (!ring) return null
+            return parseFloat(getComputedStyle(ring).borderTopLeftRadius)
+        })
+        test.skip(radius === null, "No spinner on screen right now")
+        expect(radius).toBeGreaterThan(0)
     })
 })
 
