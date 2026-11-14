@@ -49,6 +49,22 @@ describe("detectVersionChangeCommand", () => {
         expect(detectVersionChangeCommand("switch to next verse")).toBeNull()
         expect(detectVersionChangeCommand("")).toBeNull()
     })
+
+    it("does not treat preaching phrases as a version change", () => {
+        expect(detectVersionChangeCommand("you read the Bible")).toBeNull()
+        expect(detectVersionChangeCommand("read the Bible")).toBeNull()
+        expect(detectVersionChangeCommand("when you read the Bible, look at John 8:7")).toBeNull()
+        expect(detectVersionChangeCommand("turn to the Bible")).toBeNull()
+        expect(detectVersionChangeCommand("go to the Bible")).toBeNull()
+        expect(detectVersionChangeCommand("turn with me to John 3")).toBeNull()
+    })
+
+    it("does not fire on the local-Bibles-only toast feeding back into STT", () => {
+        expect(detectVersionChangeCommand("Could not switch to the (local Bibles only)")).toBeNull()
+        expect(detectVersionChangeCommand("could not switch to the local Bible")).toBeNull()
+        expect(detectVersionChangeCommand("switch to the local Bible")).toBeNull()
+        expect(detectVersionChangeCommand("switch to the local Bibles only")).toBeNull()
+    })
 })
 
 describe("parseScriptureReference", () => {

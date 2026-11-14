@@ -23,6 +23,15 @@ describe("sermon queue", () => {
     })
 })
 
+describe("formatSermonReference", () => {
+    it("prints a canonical English book chapter:verse", async () => {
+        const { formatSermonReference } = await import("./sermonReference")
+        expect(formatSermonReference({ book: 43, chapter: 3, verses: [16] })).toBe("John 3:16")
+        expect(formatSermonReference({ book: 41, chapter: 1, verses: [1, 2, 3] })).toBe("Mark 1:1-3")
+        expect(formatSermonReference({ book: "John", chapter: 8, verses: [7] })).toBe("John 8:7")
+    })
+})
+
 describe("verseFromSuggestion", () => {
     it("copies the scripture suggestion fields", () => {
         const card = verseFromSuggestion({ id: "abc", content: "John 3:16", confidence: 98, scriptureMatchType: "reference", timestamp: 5 }, "For God so loved")

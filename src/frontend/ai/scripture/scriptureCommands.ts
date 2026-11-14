@@ -49,9 +49,27 @@ export interface VersionChangeCommand {
     raw: string
 }
 
-// "change to the ESV version", "switch to KJV translation", "use the NIV bible".
-// A version/translation/bible keyword is required so this never fires on generic phrases.
-const VERSION_CHANGE_REGEX = /\b(?:change|switch|use|read|go|turn)\s+(?:over\s+)?(?:to|into|unto)?\s*(?:the\s+)?([A-Za-z0-9 ]+?)\s+(?:version|translation|bible)\b/i
+// Operator commands only: "change to the ESV version", "switch to KJV translation", "use the NIV bible".
+//
+// "read" / "go" / "turn" are NOT verbs here. Preaching is full of "read the Bible",
+// "turn to the Bible", "go to John" — those must never be version switches.
+// A version/translation/bible keyword is still required, and the captured name must
+// look like a real translation (NIV, ESV, Twi…), not "the" / "local" / "holy".
+const VERSION_CHANGE_REGEX = /\b(?:(?:change|switch)\s+(?:over\s+)?(?:to|into)\s+|(?:use)\s+)(?:the\s+)?([A-Za-z0-9][A-Za-z0-9 .'\-]{0,40}?)\s+(?:version|translation|bible)\b/i
+
+const VERSION_QUERY_STOPWORDS = new Set(["the", "a", "an", "this", "that", "these", "those", "local", "my", "our", "your", "his", "her", "their", "same", "other", "it", "its", "some", "any", "all", "only", "holy", "word", "from", "to", "bible", "bibles", "version", "translation"])
+
+export function isPlausibleVersionQuery(query: string): boolean {
+    const words = query
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, " ")
+        .split(/\s+/)
+        .filter(Boolean)
+        .filter((word) => !VERSION_QUERY_STOPWORDS.has(word))
+    if (!words.length) return false
+    const joined = words.join(" ")
+    return joined.length >= 2 && joined.length <= 40
+}
 
 export function detectVersionChangeCommand(text: string): VersionChangeCommand | null {
     if (!text || !text.trim()) return null
@@ -59,7 +77,7 @@ export function detectVersionChangeCommand(text: string): VersionChangeCommand |
     if (!match) return null
 
     const query = match[1].trim()
-    if (!query) return null
+    if (!isPlausibleVersionQuery(query)) return null
 
     return { query, confidence: 95, rationale: `Explicit version-change command: "${match[0].trim()}".`, raw: match[0].trim() }
 }

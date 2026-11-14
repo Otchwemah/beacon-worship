@@ -3,6 +3,7 @@ import { activeScripture, drawerTabsData, outLocked } from "../../../stores"
 import { newToast } from "../../../utils/common"
 import { parseEngScriptureRefToNumbers, playScripture, resolveScriptureReference } from "../bible/scripture"
 import { sermonLive, type SermonVerse } from "./sermonStore"
+import { formatSermonReference } from "./sermonReference"
 import { lookupVerseText } from "./verseLookup"
 
 /**
@@ -39,8 +40,9 @@ export async function presentSermonVerse(verse: SermonVerse): Promise<boolean> {
 
     await playScripture()
 
-    const text = verse.text || (await lookupVerseText(verse.reference))
-    const live: SermonVerse = { ...verse, text, timestamp: Date.now() }
+    const pretty = formatSermonReference(resolved)
+    const text = verse.text || (await lookupVerseText(pretty)) || (await lookupVerseText(verse.reference))
+    const live: SermonVerse = { ...verse, reference: pretty, text, timestamp: Date.now() }
     sermonLive.set(live)
     const { AiManager } = await import("../../../ai/manager/AiManager")
     AiManager.liveContent = verse.reference

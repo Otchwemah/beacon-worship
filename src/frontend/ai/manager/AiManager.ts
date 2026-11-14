@@ -52,7 +52,9 @@ export class AiManager {
             return
         }
         const versionCommand = detectVersionChangeCommand(chunk.chunkWithOverlap)
-        if (versionCommand) {
+        // Sermon console is for verse detections, not Bible-version switching. A preaching
+        // phrase must never swallow the rest of the chunk (and toast "local Bibles only").
+        if (versionCommand && get(activeDrawerTab) !== "sermon") {
             await this.handleVersionChange(versionCommand)
             return
         }
