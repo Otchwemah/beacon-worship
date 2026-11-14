@@ -9,7 +9,6 @@
     import T from "../../helpers/T.svelte"
     import MaterialButton from "../../inputs/MaterialButton.svelte"
     import NavigationSections from "./NavigationSections.svelte"
-    import SongLibraryButton from "../shows/SongLibraryButton.svelte"
 
     $: profile = $activeProfile ? getAccess("shows") : {}
     $: readOnly = profile.global === "read"
@@ -76,10 +75,5 @@
             <Icon id="add" size={$labelsDisabled ? 0.9 : 1} white={$labelsDisabled} />
             {#if !$labelsDisabled}<T id="new.category" />{/if}
         </MaterialButton>
-
-        <!-- Beacon Worship: built-in Christmas carols + classic hymns -->
-        <div style="margin-top: 8px;">
-            <SongLibraryButton disabled={readOnly} />
-        </div>
     </div>
 </NavigationSections>

@@ -452,43 +452,6 @@ test.describe("live override policy", () => {
     })
 })
 
-test.describe("song library (carols & hymns)", () => {
-    test("the Shows tab offers the built-in carols & hymns library", async () => {
-        await openTab(window, "shows")
-
-        // the control lives in the LEFT panel, mirroring the Hymns "Load folder" placement
-        const button = window.locator(".song-library button").first()
-        await expect(button).toBeVisible()
-
-        await button.click()
-        const panel = window.locator(".song-library .panel")
-        await expect(panel).toBeVisible()
-
-        // both collections are offered with a count
-        await expect(panel.locator("label.row")).toHaveCount(2)
-        await expect(panel).toContainText(/Christmas carols/i)
-        await expect(panel).toContainText(/Classic hymns/i)
-    })
-
-    test("installing adds real, presentable songs to the Shows list", async () => {
-        await openTab(window, "shows")
-
-        const opener = window.locator(".song-library button").first()
-        await expect(opener).toBeVisible()
-        if (!(await window.locator(".song-library .panel").isVisible())) await opener.click()
-
-        const install = window.locator(".song-library .panel button").last()
-        test.skip(await install.isDisabled(), "Library already installed on this profile")
-
-        await install.click()
-
-        // the panel closes and the two new categories appear in the left navigation
-        await expect(window.locator(".song-library .panel")).toBeHidden()
-        await expect(window.locator("span.tabs:has(#hymns)")).toBeVisible()
-        await expect(window.locator(".drawer")).toContainText(/Christmas Carols|Classic Hymns/i)
-    })
-})
-
 test.describe("hymn thumbnails come from the first slide", () => {
     test("a hymn tile renders a slide canvas rather than an empty white box", async () => {
         await openTab(window, "hymns")
