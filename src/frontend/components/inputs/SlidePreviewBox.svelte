@@ -9,6 +9,15 @@
     // thing reproduces the slide faithfully - colours, positions, font sizes and line
     // breaks - without pulling in Slide.svelte, which drags the editor, media loader and
     // autosize machinery into every drawer row.
+    //
+    // Fidelity notes (each of these was a real defect in hymn thumbnails):
+    //  - PowerPoint shapes arrive as item.customSvg (type:"icon", no text lines). They MUST
+    //    be drawn, or the GA/TWI/ENGLISH colour panels vanish and the lyrics float on the
+    //    background. Rendered exactly like slide/views/IconItem.svelte.
+    //  - slide colour can be a CSS gradient string, so it goes in `background`, never
+    //    `background-color` (which silently drops gradients).
+    //  - text uses the same centred flex layout as slide/TextboxLines.svelte so the
+    //    arrangement matches the live slide instead of being top-aligned.
 
     export let preview: SlidePreview
 
@@ -32,7 +41,7 @@
 <svelte:window on:resize={measure} />
 
 {#if preview}
-    <div class="slide-preview" bind:this={container} style="aspect-ratio: {width} / {height};background-color: {preview.backgroundColor || '#101820'};">
+    <div class="slide-preview" bind:this={container} style="aspect-ratio: {width} / {height};background: {preview.backgroundColor || '#101820'};">
         {#if scale > 0}
             <div class="canvas" style="width: {width}px;height: {height}px;transform: scale({scale});">
                 {#if imagePath}
@@ -41,13 +50,24 @@
 
                 {#each items as item (item.id)}
                     <div class="item" style="{item.style};{item.align}">
+                        {#if item.customSvg}
+                            <div class="custom-svg" class:custom-color={item.useCurrentColor}>
+                                {@html item.customSvg}
+                            </div>
+                        {/if}
                         {#if item.src}
                             <img class="media" src={encodeFilePath(item.src)} alt="" loading="lazy" draggable="false" style="object-fit: {item.fit};" />
                         {/if}
-                        {#if item.runs.length}
-                            <span class="text"
-                                >{#each item.runs as run, i}{#if run.value === "\n"}<br />{:else}<span style={run.style}>{run.value}</span>{/if}{/each}</span
-                            >
+                        {#if item.lines.length}
+                            <div class="align">
+                                <div class="lines">
+                                    {#each item.lines as line, li}
+                                        <div class="line" style={line.align}>
+                                            {#each line.runs as run, ri}{#if run.value === "\n"}<br />{:else}<span style={run.style}>{run.value}</span>{/if}{/each}
+                                        </div>
+                                    {/each}
+                                </div>
+                            </div>
                         {/if}
                     </div>
                 {/each}
@@ -65,7 +85,7 @@
         width: 100%;
         overflow: hidden;
         border-radius: 3px;
-        background-color: #101820;
+        background: #101820;
     }
 
     .canvas {
@@ -88,9 +108,19 @@
     .item {
         position: absolute;
         overflow: hidden;
-        display: flex;
-        flex-direction: column;
-        justify-content: center;
+    }
+
+    /* matches IconItem.svelte: the shape fills its box */
+    .custom-svg,
+    .custom-svg :global(svg) {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+    }
+    .custom-svg.custom-color :global(svg path) {
+        fill: currentColor;
     }
 
     .media {
@@ -101,11 +131,28 @@
         height: 100%;
     }
 
-    .text {
+    /* matches TextboxLines.svelte .align / .lines */
+    .align {
         position: relative;
         width: 100%;
-        white-space: pre-wrap;
-        word-break: break-word;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+    }
+
+    .lines {
+        width: 100%;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+    }
+
+    /* each line keeps its own text-align from the importer (PPT default is left) */
+    .line {
+        width: 100%;
+        overflow-wrap: break-word;
         line-height: 1.2;
     }
 

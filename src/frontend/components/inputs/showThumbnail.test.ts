@@ -174,3 +174,73 @@ describe("getPreviewItems — faithful first-slide rendering", () => {
         expect(preview.height).toBe(720)
     })
 })
+
+describe("faithful hymn thumbnails — shapes, alignment and gradients", () => {
+    // Mirrors a real Presbyterian hymn deck: a gradient background plus three coloured
+    // SVG panels (GA / TWI / ENGLISH), each with its own left-aligned lyric textbox.
+    const panel = (id: string, left: number, fill: string): any => ({
+        id,
+        type: "icon",
+        style: `top:600px;left:${left}px;width:640px;height:480px;`,
+        customSvg: `<svg viewBox="0 0 1 1"><path d="M0 0 L1 0 L1 1 L0 1 Z" fill="${fill}"/></svg>`
+    })
+    const lyric = (id: string, left: number, value: string): any => ({
+        id,
+        style: `top:640px;left:${left}px;width:600px;height:400px;`,
+        lines: [{ align: "text-align: left;", text: [{ value, style: "font-size:48px;color:#ffffff;" }] }]
+    })
+
+    const slide: any = {
+        settings: { color: "linear-gradient(135deg, #123456 0%, #654321 100%)" },
+        items: [panel("ga", 0, "#1b3a6b"), panel("twi", 640, "#1e5c3a"), panel("en", 1280, "#6b1b2a"), lyric("gaText", 20, "Mike mitsui"), lyric("twiText", 660, "Awurade, me kra"), lyric("enText", 1300, "Sing with the tongue")]
+    }
+
+    it("KEEPS the coloured SVG panels — dropping them removed the three colour divisions", () => {
+        const items = getPreviewItems(slide)
+        const shapes = items.filter((a) => a.customSvg)
+        expect(shapes).toHaveLength(3)
+        expect(shapes.map((a) => a.id)).toEqual(["ga", "twi", "en"])
+        expect(shapes[0].customSvg).toContain("#1b3a6b")
+    })
+
+    it("keeps panel geometry so each colour sits under its own column", () => {
+        const twi = getPreviewItems(slide).find((a) => a.id === "twi")!
+        expect(twi.style).toContain("left:640px")
+        expect(twi.style).toContain("width:640px")
+    })
+
+    it("paints shapes before the text that sits on them", () => {
+        expect(getPreviewItems(slide).map((a) => a.id)).toEqual(["ga", "twi", "en", "gaText", "twiText", "enText"])
+    })
+
+    it("PRESERVES per-line alignment instead of forcing everything centre", () => {
+        const text = getPreviewItems(slide).find((a) => a.id === "gaText")!
+        expect(text.lines).toHaveLength(1)
+        expect(text.lines[0].align).toBe("text-align: left;")
+        expect(text.lines[0].runs[0].value).toBe("Mike mitsui")
+    })
+
+    it("keeps right and justified alignment too", () => {
+        const s: any = { items: [{ id: "x", style: "top:0;left:0;", lines: [{ align: "text-align: right;", text: [{ value: "R", style: "" }] }, { align: "text-align: justify;", text: [{ value: "J", style: "" }] }] }] }
+        expect(getPreviewItems(s).map((a) => a.lines[0].align)).toEqual(["text-align: right;"])
+        expect(getPreviewItems(s)[0].lines.map((l) => l.align)).toEqual(["text-align: right;", "text-align: justify;"])
+    })
+
+    it("inherits the item colour for SVG paths only when a real colour is set", () => {
+        const withColor: any = { items: [{ id: "a", type: "icon", style: "color:#ff0000;", customSvg: "<svg/>" }, { id: "b", type: "icon", style: "color:;", customSvg: "<svg/>" }, { id: "c", type: "icon", style: "top:0;", customSvg: "<svg/>" }] }
+        const items = getPreviewItems(withColor)
+        expect(items.find((a) => a.id === "a")!.useCurrentColor).toBe(true)
+        expect(items.find((a) => a.id === "b")!.useCurrentColor).toBe(false)
+        expect(items.find((a) => a.id === "c")!.useCurrentColor).toBe(false)
+    })
+
+    it("passes a gradient background through untouched (must be used as `background`)", () => {
+        const show: any = { slides: { s1: slide }, layouts: { l1: { slides: [{ id: "s1" }] } }, settings: { activeLayout: "l1" } }
+        expect(getSlidePreview(show)!.backgroundColor).toBe("linear-gradient(135deg, #123456 0%, #654321 100%)")
+    })
+
+    it("still drops an item that paints nothing at all", () => {
+        const empty: any = { items: [{ id: "noop", style: "top:0;left:0;width:10px;height:10px;" }] }
+        expect(getPreviewItems(empty)).toEqual([])
+    })
+})

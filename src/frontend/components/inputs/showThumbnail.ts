@@ -17,14 +17,28 @@ export interface PreviewRun {
     style: string
 }
 
+// A slide line keeps its OWN alignment. The PowerPoint importer sets this per line and
+// defaults to LEFT, so forcing centre on the whole box mis-arranges every hymn column.
+export interface PreviewLine {
+    align: string
+    runs: PreviewRun[]
+}
+
 export interface PreviewItem {
     id: string
     style: string
     align: string
     runs: PreviewRun[]
+    lines: PreviewLine[]
     src: string
     isImage: boolean
     fit: string
+    // PowerPoint shapes (coloured panels, dividers, gradient rectangles) are imported as
+    // type:"icon" with a normalized SVG in customSvg and NO text lines. Dropping them is
+    // what removed the three GA/TWI/ENGLISH colour blocks from hymn thumbnails.
+    customSvg: string
+    // mirrors IconItem.svelte: when the item sets a colour, the SVG paths inherit it
+    useCurrentColor: boolean
 }
 
 export interface SlidePreview {
@@ -138,9 +152,11 @@ export function getPreviewItems(slide: Slide | null | undefined): PreviewItem[] 
         const src = isImage ? item.src || "" : ""
 
         const runs: PreviewRun[] = []
+        const lines: PreviewLine[] = []
         for (const line of item.lines || []) {
             const lineRuns = (line?.text || []).map((run) => ({ value: run?.value || "", style: run?.style || "" }))
             if (lineRuns.some((r) => stripTags(r.value).trim().length)) {
+                lines.push({ align: line?.align || "", runs: lineRuns })
                 runs.push(...lineRuns)
                 // preserve line breaks between lines
                 runs.push({ value: "\n", style: "" })
@@ -148,16 +164,23 @@ export function getPreviewItems(slide: Slide | null | undefined): PreviewItem[] 
         }
         while (runs.length && runs[runs.length - 1].value === "\n") runs.pop()
 
-        if (!runs.length && !src && !item.style?.includes("background")) return
+        const customSvg = typeof item.customSvg === "string" ? item.customSvg : ""
 
+        // keep anything that paints: text, an image, a shape, or a filled box
+        if (!runs.length && !src && !customSvg && !item.style?.includes("background")) return
+
+        const style = item.style || ""
         out.push({
             id: item.id || `item-${index}`,
-            style: item.style || "",
+            style,
             align: item.align || "",
             runs,
+            lines,
             src,
             isImage,
-            fit: item.fit || "contain"
+            fit: item.fit || "contain",
+            customSvg,
+            useCurrentColor: style.includes("color:") && !style.includes("color:;")
         })
     })
 
