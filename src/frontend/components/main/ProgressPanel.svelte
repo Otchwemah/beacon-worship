@@ -16,8 +16,11 @@
 
     $: rawImports = Array.from($pdfImports.entries())
     $: imports = rawImports.filter(([filePath, data]) => !(data.status === "error" && errorPaths.has(filePath)))
-    $: hasPdfImports = imports.length > 0
-    $: hasProgress = hasDownloads || hasPdfImports
+    $: hymnImports = imports.filter(([filePath]) => filePath === "__hymn_folder__")
+    $: pdfOnly = imports.filter(([filePath]) => filePath !== "__hymn_folder__")
+    $: hasHymnImports = hymnImports.length > 0
+    $: hasPdfImports = pdfOnly.length > 0
+    $: hasProgress = hasDownloads || hasPdfImports || hasHymnImports
 
     // reset dismissed state when a new download appears
     $: {
@@ -91,13 +94,37 @@
             {/each}
         {/if}
 
-        {#if hasPdfImports}
+        {#if hasHymnImports}
             <div class="header {hasDownloads ? 'section' : ''}">
+                <Icon id="book" size={0.9} white />
+                <span><T id="hymns.importing" /></span>
+            </div>
+
+            {#each hymnImports as [filePath, data] (filePath)}
+                <div class="download-item" transition:fade={{ duration: 150 }}>
+                    <div class="pdf-top-row">
+                        <div class="file-name" title={data.name}>{data.name}</div>
+                        <span class="status {data.status === 'error' ? 'error' : data.status === 'complete' ? 'ok' : ''}">{data.progress} / {data.total}</span>
+                    </div>
+
+                    {#if data.status === "importing"}
+                        <div class="progress-bar">
+                            <div class="progress-fill" style="width: {getPercent(data.progress, data.total)}%" />
+                        </div>
+                    {:else if data.status === "error"}
+                        <div class="progress-text error-text" title={data.message}>{data.message || translateText("error.import")}</div>
+                    {/if}
+                </div>
+            {/each}
+        {/if}
+
+        {#if hasPdfImports}
+            <div class="header {hasDownloads || hasHymnImports ? 'section' : ''}">
                 <Icon id="pdf" size={0.9} white />
                 <span><T id="popup.importing" /> PDF</span>
             </div>
 
-            {#each imports as [filePath, data] (filePath)}
+            {#each pdfOnly as [filePath, data] (filePath)}
                 <div class="download-item" transition:fade={{ duration: 150 }}>
                     <div class="pdf-top-row">
                         <div class="file-name" title={data.name}>{data.name}</div>

@@ -588,7 +588,7 @@ export const mainResponses: MainResponses = {
             txt: () => convertTexts(data),
             chordpro: () => convertChordPro(data),
             csv: () => convertCSV(data),
-            powerpoint: () => convertPowerpoint(data, { categoryName: a.categoryName, folderPath: a.folderPath }),
+            powerpoint: () => convertPowerpoint(data, { categoryName: a.categoryName, folderPath: a.folderPath, importBatch: a.importBatch }),
             word: () => convertTexts(data),
             // Other programs
             propresenter: () => convertProPresenter(data as { content: any; name: string; extension: string }[]),

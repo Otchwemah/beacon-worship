@@ -29,6 +29,7 @@ const h = vi.hoisted(() => {
         drawerTabsData: makeStore({ shows: { activeSubTab: "all" } }),
         special: makeStore({}),
         tempShows: [] as any[],
+        setTempShowsOptions: undefined as any,
         createCategoryCalls: [] as any[],
         uidCounter: 0
     }
@@ -59,8 +60,9 @@ vi.mock("../importHelpers", () => ({
         h.createCategoryCalls.push(args)
         return "presentation"
     },
-    setTempShows: (shows: any[]) => {
+    setTempShows: (shows: any[], options?: any) => {
         h.tempShows = shows
+        h.setTempShowsOptions = options
     }
 }))
 vi.mock("../../utils/language", () => ({ translateText: (key: string) => key }))
@@ -102,6 +104,7 @@ beforeEach(() => {
     h.drawerTabsData._reset({ shows: { activeSubTab: "all" } })
     h.special._reset({})
     h.tempShows = []
+    h.setTempShowsOptions = undefined
     h.createCategoryCalls = []
     h.uidCounter = 0
 })
@@ -156,5 +159,17 @@ describe("convertPowerpoint import UI", () => {
         vi.advanceTimersByTime(10)
         const slides = Object.values(h.tempShows[0].show.slides) as any[]
         expect(slides.every((s) => !s.settings.backgroundImage)).toBe(true)
+    })
+
+    it("does not toast finished until the last import batch", () => {
+        convertPowerpoint([deck()], { importBatch: { done: 3, total: 850, last: false } })
+        vi.advanceTimersByTime(10)
+        expect(h.tempShows).toHaveLength(1)
+        expect(h.setTempShowsOptions).toEqual({ suppressFinishedToast: true })
+
+        h.tempShows = []
+        convertPowerpoint([deck()], { importBatch: { done: 850, total: 850, last: true } })
+        vi.advanceTimersByTime(10)
+        expect(h.setTempShowsOptions).toEqual({ suppressFinishedToast: false })
     })
 })

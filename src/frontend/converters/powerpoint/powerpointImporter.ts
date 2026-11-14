@@ -59,7 +59,7 @@ function registerHymnFolder(folderPath: string, name: string, categoryId: string
 // item/line background, some text color incorrect
 // extract embedded videos/audio
 
-export function convertPowerpoint(files: any[], options: { categoryName?: string; folderPath?: string } = {}) {
+export function convertPowerpoint(files: any[], options: { categoryName?: string; folderPath?: string; importBatch?: { done: number; total: number; last: boolean } } = {}) {
     // Beacon Worship: hymn/PPT imports must not raise the blocking "Importing..." alert.
     // The import dialog already closes itself; setTempShows() still emits the normal
     // finished toast when conversion completes.
@@ -76,6 +76,7 @@ export function convertPowerpoint(files: any[], options: { categoryName?: string
     }
 
     const tempShows: any[] = []
+    const lastBatch = options.importBatch ? options.importBatch.last : true
 
     setTimeout(() => {
         files.forEach(({ name, content }: any) => {
@@ -171,7 +172,7 @@ export function convertPowerpoint(files: any[], options: { categoryName?: string
             tempShows.push({ id: uid(), show })
         })
 
-        setTempShows(tempShows)
+        setTempShows(tempShows, { suppressFinishedToast: !lastBatch })
     }, 10)
 }
 

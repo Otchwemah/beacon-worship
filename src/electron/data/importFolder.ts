@@ -1,4 +1,4 @@
-import { readdir } from "fs/promises"
+import { readdir, stat } from "fs/promises"
 import path from "path"
 
 // Beacon Worship — "Load folder" for the Hymns tab.
@@ -65,8 +65,8 @@ export type ScanResult = {
 // and skips hidden folders such as .git or .Trashes.
 export async function scanImportFolder(folderPath: string, extensions: string[], options: ScanOptions = {}): Promise<ScanResult> {
     const recursive = options.recursive !== false
-    const maxDepth = options.maxDepth ?? 5
-    const maxFiles = options.maxFiles ?? 2000
+    const maxDepth = options.maxDepth ?? 20
+    const maxFiles = options.maxFiles ?? 10000
 
     const found: string[] = []
     let truncated = false
@@ -100,9 +100,24 @@ export async function scanImportFolder(folderPath: string, extensions: string[],
                 continue
             }
 
-            // isFile() is false for symlinks; never follow them
-            if (!entry.isFile()) continue
-            if (isImportableFile(full, extensions)) found.push(full)
+            if (entry.isFile()) {
+                if (isImportableFile(full, extensions)) found.push(full)
+                continue
+            }
+
+            // Windows/OneDrive: Dirent.isFile() is often false for real .pptx files.
+            try {
+                const info = await stat(full)
+                if (info.isDirectory()) {
+                    if (!recursive || depth >= maxDepth) continue
+                    if (entry.name.startsWith(".")) continue
+                    await walk(full, depth + 1)
+                } else if (isImportableFile(full, extensions)) {
+                    found.push(full)
+                }
+            } catch {
+                if (isImportableFile(full, extensions)) found.push(full)
+            }
         }
     }
 

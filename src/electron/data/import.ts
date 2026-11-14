@@ -26,8 +26,12 @@ const specialImports = {
 
         const data: FileData[] = []
         for await (const filePath of files) {
-            const json = await pptToShow(filePath)
-            if (json) data.push({ name: getFileName(filePath), content: json })
+            try {
+                const json = await pptToShow(filePath)
+                if (json) data.push({ name: getFileName(filePath), content: json })
+            } catch (err) {
+                console.error("PPT import failed for", filePath, err)
+            }
         }
 
         return data
@@ -93,6 +97,60 @@ const specialImports = {
     }
 }
 
+const PPT_IMPORT_BATCH = 3
+const HYMN_IMPORT_PROGRESS_KEY = "__hymn_folder__"
+
+function reportHymnImportProgress(done: number, total: number, status: "importing" | "complete" | "error", name?: string) {
+    sendToMain(ToMain.PDF_IMPORT_PROGRESS, {
+        filePath: HYMN_IMPORT_PROGRESS_KEY,
+        name: name || "Hymn decks",
+        progress: done,
+        total,
+        status
+    })
+}
+
+async function importPowerpointInBatches(files: string[], channel: string, options: { categoryName?: string; folderPath?: string } = {}) {
+    sendToMain(ToMain.TOAST, "hymns.importing")
+    reportHymnImportProgress(0, files.length, "importing", options.categoryName)
+
+    let batch: FileData[] = []
+    let imported = 0
+
+    for (let i = 0; i < files.length; i++) {
+        try {
+            const json = await pptToShow(files[i])
+            if (json) {
+                batch.push({ name: getFileName(files[i]), content: json })
+                imported++
+            }
+        } catch (err) {
+            console.error("PPT import failed for", files[i], err)
+        }
+
+        reportHymnImportProgress(i + 1, files.length, "importing", options.categoryName)
+
+        const last = i === files.length - 1
+        if (batch.length >= PPT_IMPORT_BATCH || (last && batch.length)) {
+            sendToMain(ToMain.IMPORT2, {
+                channel,
+                data: batch,
+                ...(options.categoryName ? { categoryName: options.categoryName } : {}),
+                ...(options.folderPath ? { folderPath: options.folderPath } : {}),
+                importBatch: { done: i + 1, total: files.length, last }
+            })
+            batch = []
+            // let Windows GC + the renderer commit before the next decode
+            await new Promise((resolve) => setTimeout(resolve, 50))
+        } else {
+            await new Promise((resolve) => setImmediate(resolve))
+        }
+    }
+
+    reportHymnImportProgress(files.length, files.length, imported ? "complete" : "error", options.categoryName)
+    if (!imported) sendToMain(ToMain.TOAST, "hymns.folder_empty")
+}
+
 export async function importShow(id: string, files: string[] | null, options: { categoryName?: string; folderPath?: string } = {}) {
     if (!files?.length) return
 
@@ -130,6 +188,11 @@ export async function importShow(id: string, files: string[] | null, options: { 
             }
             sendToMain(ToMain.IMPORT2, { channel: id, data })
         }
+        return
+    }
+
+    if (importId === "powerpoint") {
+        await importPowerpointInBatches(files, id, options)
         return
     }
 

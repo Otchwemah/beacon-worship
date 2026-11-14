@@ -98,21 +98,57 @@
 
     $: mode = $hymnOptions.mode || "grid"
     $: columns = Math.max(1, Math.min(12, $hymnOptions.columns || 4))
+
+    // Don't mount all 850 hymn tiles at once — that freezes Windows after Load folder.
+    let gridScroller: HTMLDivElement
+    let scrollTop = 0
+    let viewH = 400
+    let wrapW = 0
+    const GRID_GAP = 10
+    const GRID_PAD = 10
+    const NAME_BLOCK = 42
+
+    function onGridScroll() {
+        if (!gridScroller) return
+        scrollTop = gridScroller.scrollTop
+        viewH = gridScroller.clientHeight
+        wrapW = gridScroller.clientWidth
+    }
+
+    $: if (gridScroller && mode === "grid") onGridScroll()
+    $: innerW = Math.max(0, wrapW - GRID_PAD * 2)
+    $: tileW = columns > 0 && innerW > 0 ? (innerW - GRID_GAP * (columns - 1)) / columns : 160
+    $: tileH = tileW * (9 / 16) + 5 + NAME_BLOCK
+    $: rowH = tileH + GRID_GAP
+    $: rowCount = Math.ceil(filtered.length / columns) || 0
+    $: startRow = Math.max(0, Math.floor(scrollTop / Math.max(rowH, 1)) - 2)
+    $: endRow = Math.min(rowCount, Math.ceil((scrollTop + viewH) / Math.max(rowH, 1)) + 3)
+    $: visibleDecks = filtered.slice(startRow * columns, endRow * columns)
+    $: padTop = startRow * rowH
+    $: padBottom = Math.max(0, (rowCount - endRow) * rowH)
 </script>
 
 <div class="hymns-panel">
     <HymnsToolbar count={filtered.length} total={hymnDecks.length} />
 
     {#if mode === "grid"}
-        <Autoscroll style="overflow-y: auto;flex: 1;">
-            <div class="grid-wrap {readOnly ? '' : 'context #drawer_show'}" on:mouseup={() => focusedArea.set("show_drawer")}>
-                {#if filtered.length}
-                    <div class="hymn-grid" style="grid-template-columns: repeat({columns}, minmax(0, 1fr));">
-                        {#each filtered as show (show.id)}
-                            <HymnCard {show} selected={$activeShow?.id === show.id} />
-                        {/each}
-                    </div>
-                {:else if isSearching}
+        <div
+            bind:this={gridScroller}
+            bind:clientWidth={wrapW}
+            bind:clientHeight={viewH}
+            class="grid-wrap {readOnly ? '' : 'context #drawer_show'}"
+            on:scroll={onGridScroll}
+            on:mouseup={() => focusedArea.set("show_drawer")}
+        >
+            {#if filtered.length}
+                <div class="hymn-grid-pad" style="height: {padTop}px;"></div>
+                <div class="hymn-grid" style="grid-template-columns: repeat({columns}, minmax(0, 1fr));grid-auto-rows: {tileH}px;">
+                    {#each visibleDecks as show (show.id)}
+                        <HymnCard {show} selected={$activeShow?.id === show.id} />
+                    {/each}
+                </div>
+                <div class="hymn-grid-pad" style="height: {padBottom}px;"></div>
+            {:else if isSearching}
                     <Center size={1.2} faded><T id="empty.search" /></Center>
                 {:else}
                     <Center size={1.1} faded>
@@ -124,8 +160,7 @@
                         </MaterialButton>
                     </Center>
                 {/if}
-            </div>
-        </Autoscroll>
+        </div>
     {:else}
         <Autoscroll style="overflow-y: auto;flex: 1;">
             <div class="column {readOnly ? '' : 'context #drawer_show'}" on:mouseup={() => focusedArea.set("show_drawer")}>
@@ -178,15 +213,22 @@
 
     .grid-wrap {
         background-color: var(--primary-darker);
-        min-height: 100%;
+        flex: 1;
+        min-height: 0;
+        overflow-y: auto;
         padding: 10px;
         padding-bottom: 60px;
+    }
+
+    .hymn-grid-pad {
+        width: 100%;
+        pointer-events: none;
     }
 
     .hymn-grid {
         display: grid;
         gap: 10px;
-        align-items: start;
+        align-items: stretch;
     }
 
     .column {

@@ -140,6 +140,8 @@
         color: var(--text);
         text-align: start;
         overflow: hidden;
+        content-visibility: auto;
+        contain-intrinsic-size: auto 140px;
     }
 
     .hymn-card:hover {
