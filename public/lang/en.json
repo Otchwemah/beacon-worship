@@ -460,6 +460,8 @@
         "shows_info": "A show is made up of slides; it can be a song, presentation, media, scripture, and more.",
         "hymns": "Hymns",
         "hymns_info": "Your hymn library. Click a hymn to select it, double-click to send it live.",
+        "sermon": "Sermon",
+        "sermon_info": "Live Scripture detection. Listen, preview, queue, then send verses to the projector.",
         "media": "Media",
         "overlays": "Overlays",
         "audio": "Audio",

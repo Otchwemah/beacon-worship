@@ -321,15 +321,19 @@
     </div>
 
     <div class="content">
-        <Resizeable id="leftPanelDrawer">
-            <Navigation id={$activeDrawerTab} />
-        </Resizeable>
+        {#if $activeDrawerTab !== "sermon"}
+            <Resizeable id="leftPanelDrawer">
+                <Navigation id={$activeDrawerTab} />
+            </Resizeable>
+        {/if}
         <Content id={$activeDrawerTab} bind:searchValue bind:firstMatch />
-        <Resizeable id="rightPanelDrawer" let:width side="right">
-            <div class="right" class:row={width > DEFAULT_WIDTH * 1.8}>
-                <Info id={$activeDrawerTab} />
-            </div>
-        </Resizeable>
+        {#if $activeDrawerTab !== "sermon"}
+            <Resizeable id="rightPanelDrawer" let:width side="right">
+                <div class="right" class:row={width > DEFAULT_WIDTH * 1.8}>
+                    <Info id={$activeDrawerTab} />
+                </div>
+            </Resizeable>
+        {/if}
     </div>
 </section>
 

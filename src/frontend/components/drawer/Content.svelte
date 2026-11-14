@@ -7,6 +7,7 @@
     import Calendar from "./calendar/Calendar.svelte"
     import Hymns from "./hymns/Hymns.svelte"
     import Media from "./media/Media.svelte"
+    import Sermon from "./sermon/Sermon.svelte"
     import Actions from "./pages/Actions.svelte"
     import Interactions from "./pages/Interactions.svelte"
     import OBS from "./pages/OBS.svelte"
@@ -42,8 +43,8 @@
     }
 </script>
 
-<div class="main">
-    {#if searchValue && active !== "all" && searchTab !== id + active && id !== "scripture"}
+<div class="main" class:fill={id === "sermon"}>
+    {#if searchValue && active !== "all" && searchTab !== id + active && id !== "scripture" && id !== "sermon"}
         <div class="warning">
             <p style="padding: 6px 8px;"><T id="main.search_active" />: <span style="color: var(--secondary);font-weight: bold;">{searchValue}</span></p>
             <MaterialButton icon="close" style="padding: 6px 16px;" on:click={() => (searchValue = "")}>
@@ -66,6 +67,8 @@
         <Hymns {active} />
     {:else if id === "scripture"}
         <Scripture {active} bind:searchValue />
+    {:else if id === "sermon"}
+        <Sermon />
     {:else if id === "calendar"}
         <Calendar {active} {searchValue} />
     {:else if id === "functions"}
@@ -96,6 +99,13 @@
         flex: 1;
 
         background-color: var(--primary-darker);
+    }
+
+    .main.fill {
+        overflow: hidden;
+        height: 100%;
+        min-height: 0;
+        min-width: 0;
     }
 
     .warning {

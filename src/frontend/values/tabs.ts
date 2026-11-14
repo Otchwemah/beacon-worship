@@ -4,12 +4,14 @@ export const settingsTabs: SettingsTabs[] = ["general", "display_settings", "sty
 
 // Beacon Worship: drawer tab order is the operator's workflow order, and it also defines
 // the Ctrl/Cmd+1..9 shortcuts (shortcuts.ts indexes Object.keys(drawerTabs)).
-//   1 Shows · 2 Media · 3 Hymns · 4 Scripture · 5 Audio · 6 Overlays · 7 Templates · 8 Calendar · 9 Functions
+//   1 Shows · 2 Media · 3 Hymns · 4 Scripture · 5 Sermon · 6 Audio · 7 Overlays · 8 Templates · 9 Calendar
+//   Functions is tenth (click only — Ctrl/Cmd+1..9 covers the first nine).
 export const drawerTabs = {
     shows: { name: "tabs.shows", icon: "shows", title: "tabs.shows_info" },
     media: { name: "tabs.media", icon: "media", title: "" },
     hymns: { name: "tabs.hymns", icon: "book", title: "tabs.hymns_info" },
     scripture: { name: "tabs.scripture", icon: "scripture", title: "" },
+    sermon: { name: "tabs.sermon", icon: "sermon", title: "tabs.sermon_info" },
 
     audio: { name: "tabs.audio", icon: "audio", title: "" },
     overlays: { name: "tabs.overlays", icon: "overlays", title: "" },

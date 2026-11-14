@@ -170,8 +170,8 @@ test.describe("branding & startup", () => {
     test("drawer tabs render emoji icons", async () => {
         await ensureDrawerOpen(window)
         const emojis = window.locator(`${DRAWER_TABS} .emoji-icon`)
-        // nine tabs, each with one emoji glyph
-        await expect(emojis).toHaveCount(9)
+        // ten tabs, each with one emoji glyph
+        await expect(emojis).toHaveCount(10)
         await expect(emojis.first()).not.toHaveText("")
     })
 })
@@ -300,9 +300,9 @@ test.describe("keyboard controls", () => {
 
         // Profiles / focus mode can hide tabs, so only assert the relative order of the
         // ones that are actually rendered, and require the full set in the default profile.
-        const expected = ["shows", "media", "hymns", "scripture", "audio", "overlays", "templates", "calendar", "functions"]
+        const expected = ["shows", "media", "hymns", "scripture", "sermon", "audio", "overlays", "templates", "calendar", "functions"]
         expect(rendered, "drawer tab order").toEqual(expected.filter((id) => rendered.includes(id)))
-        expect(rendered.length, "all nine drawer tabs should render").toBe(expected.length)
+        expect(rendered.length, "all ten drawer tabs should render").toBe(expected.length)
     })
 
     test("Ctrl+<n> switches drawer tabs", async () => {
@@ -312,7 +312,7 @@ test.describe("keyboard controls", () => {
         // Derive each shortcut from the rendered order instead of hardcoding it, so this
         // keeps passing if the tab order is re-tuned. The order itself is asserted by the
         // "drawer tab order" test below. Beacon Worship order:
-        // shows, media, hymns, scripture, audio, overlays, templates, calendar, functions.
+        // shows, media, hymns, scripture, sermon, audio, overlays, templates, calendar, functions.
         const rendered: string[] = await window.locator(`${DRAWER_TABS} > button`).evaluateAll((elements) => elements.map((element) => (element as HTMLElement).id))
         expect(rendered.length, "drawer tab buttons should be rendered").toBeGreaterThan(0)
 
@@ -323,6 +323,19 @@ test.describe("keyboard controls", () => {
             await window.keyboard.press(`Control+${index + 1}`)
             await expect(window.locator(`#${id}`)).toHaveClass(/isActive/)
         }
+    })
+})
+
+test.describe("sermon console", () => {
+    test("Sermon is a standalone drawer tab with the Pewbeam-style dashboard", async () => {
+        await expect(window.locator("#sermon")).toBeVisible()
+        await openTab(window, "sermon")
+        await expect(window.locator("[data-sermon-dash]")).toBeVisible()
+        await expect(window.locator("[data-sermon-dash]")).toContainText(/Start transcribing|Stop listening/)
+        await expect(window.locator("[data-sermon-dash]")).toContainText(/AI detections/i)
+        await expect(window.locator("[data-sermon-dash]")).toContainText(/Preview/i)
+        await expect(window.locator("[data-sermon-dash]")).toContainText(/Live output/i)
+        await expect(window.locator("[data-sermon-dash]")).toContainText(/Queue/i)
     })
 })
 

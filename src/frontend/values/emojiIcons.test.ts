@@ -51,17 +51,20 @@ describe("emojiIcons — navigation coverage", () => {
 })
 
 describe("drawerTabs — Beacon Worship workflow order", () => {
-    it("orders tabs shows, media, hymns, scripture, audio, overlays, templates, calendar, functions", () => {
-        expect(Object.keys(drawerTabs)).toEqual(["shows", "media", "hymns", "scripture", "audio", "overlays", "templates", "calendar", "functions"])
+    it("orders tabs shows, media, hymns, scripture, sermon, audio, overlays, templates, calendar, functions", () => {
+        expect(Object.keys(drawerTabs)).toEqual(["shows", "media", "hymns", "scripture", "sermon", "audio", "overlays", "templates", "calendar", "functions"])
     })
 
-    it("puts Hymns on Ctrl/Cmd+3 and Scripture on Ctrl/Cmd+4", () => {
+    it("puts Hymns on Ctrl/Cmd+3, Scripture on Ctrl/Cmd+4, Sermon on Ctrl/Cmd+5", () => {
         const keys = Object.keys(drawerTabs)
         expect(keys.indexOf("hymns") + 1).toBe(3)
         expect(keys.indexOf("scripture") + 1).toBe(4)
+        expect(keys.indexOf("sermon") + 1).toBe(5)
     })
 
-    it("keeps exactly nine tabs so Ctrl+1..9 stays complete", () => {
-        expect(Object.keys(drawerTabs).length).toBe(9)
+    it("keeps the first nine tabs on Ctrl+1..9, with Functions click-only", () => {
+        expect(Object.keys(drawerTabs).length).toBe(10)
+        expect(Object.keys(drawerTabs)[8]).toBe("calendar")
+        expect(Object.keys(drawerTabs)[9]).toBe("functions")
     })
 })

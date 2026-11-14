@@ -3,10 +3,11 @@ import { uid } from "uid"
 import type { AiSuggestion, MatchResult } from "../../../types/ai/Ai"
 import type { ConfidenceLevels } from "../../../types/ai/AiSettings"
 import { startScripture } from "../../components/actions/apiHelper"
+import { sermonMode } from "../../components/drawer/sermon/sermonStore"
 import { keysToID } from "../../components/helpers/array"
 import { getFirstActiveOutput } from "../../components/helpers/output"
 import { setActiveScripture } from "../../converters/bible"
-import { ai, aiSuggestions, drawerTabsData, outputs, scriptures } from "../../stores"
+import { activeDrawerTab, ai, aiSuggestions, drawerTabsData, outputs, scriptures } from "../../stores"
 import { newToast } from "../../utils/common"
 import { translateText } from "../../utils/language"
 import { handleHymnCommand } from "../hymns/hymnCommandHandler"
@@ -216,6 +217,9 @@ export class AiManager {
         const confidence = get(ai)[match.type as "scripture"]?.confidence || "ask"
         if (confidence === "ask") return false
 
+        // Sermon tab Manual mode is Pewbeam-style: detections appear, operator sends live.
+        if (get(activeDrawerTab) === "sermon" && get(sermonMode) === "manual") return false
+
         // Beacon Worship live policy: only confident, explicitly spoken references may
         // auto-present. Content/inferred matches, alternative translations, unclassified
         // and non-Scripture results are always operator-previewed (see autoPresentPolicy.ts).
@@ -238,8 +242,15 @@ export class AiManager {
         if (match.type === "scripture_version") {
             if (match.scriptureTranslation) setActiveScripture(match.scriptureTranslation)
         } else if (match.type === "scripture") {
-            startScripture({ reference: match.content })
-            this.outputUpdate(match.content)
+            if (get(activeDrawerTab) === "sermon") {
+                this.outputUpdate(match.content)
+                import("../../components/drawer/sermon/presentSermonVerse").then(({ presentSermonVerse }) => {
+                    presentSermonVerse({ id: uid(5), reference: match.content, text: "", confidence: match.confidence, matchType: match.scriptureMatchType, timestamp: Date.now() })
+                })
+            } else {
+                startScripture({ reference: match.content })
+                this.outputUpdate(match.content)
+            }
         }
     }
 

@@ -62,7 +62,7 @@ export interface DrawerTabs {
     }
 }
 
-export type DrawerTabIds = "shows" | "media" | "overlays" | "audio" | "scripture" | "calendar" | "timers" | "templates" | "functions" | "hymns"
+export type DrawerTabIds = "shows" | "media" | "overlays" | "audio" | "scripture" | "calendar" | "timers" | "templates" | "functions" | "hymns" | "sermon"
 export type SettingsTabs = "general" | "files" | "display_settings" | "audio" | "styles" | "connection" | "profiles" | "theme" | "ai" | "other" // "calendar"
 export type TopViews = "show" | "edit" | "reflow" | "draw" | "stage" | "calendar" | "settings"
 export type EditMode = "default" | "chords" | "text_edit"

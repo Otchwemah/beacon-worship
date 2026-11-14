@@ -1,6 +1,6 @@
 // Beacon Worship — emoji icons for the main navigation only.
 //
-// Scope is deliberately narrow: the nine drawer tabs plus the top Show / Edit / Stage
+// Scope is deliberately narrow: the drawer tabs plus the top Show / Edit / Stage
 // buttons. Everything else (close, chevrons, undo, drag handles, toolbar glyphs) stays on
 // the upstream SVG set, because emoji have no monochrome variant, cannot be recoloured by
 // the theme, and sit on inconsistent baselines at small sizes.
@@ -15,6 +15,7 @@ export const emojiIcons: { [key: string]: string } = {
     book: "📖", // hymns (drawerTabs.hymns uses icon id "book")
     hymns: "📖",
     scripture: "✝️", // Bible
+    sermon: "🎤", // live sermon / Scripture detection console
     audio: "🎵",
     overlays: "✨",
     templates: "📋",
