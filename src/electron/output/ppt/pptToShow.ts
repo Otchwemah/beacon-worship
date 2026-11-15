@@ -5,6 +5,7 @@ import { MAIN } from "../../../types/Channels"
 import { decompressZipStream } from "../../data/zip"
 import { createFolder, getDataFolderPath, sanitizeFileName } from "../../utils/files"
 import { getPowerpointEntryFileName, isPowerpointThumbnailEntry } from "./pptEntries"
+import { slimPowerpointJson } from "./slimPowerpointJson"
 
 // Extract .pptx contents (zip) and convert XML files to JSON
 // Media and fonts are streamed directly to disk to avoid OOM with large embedded videos.
@@ -75,7 +76,9 @@ export async function pptToShow(filePath: string) {
         json.contentPaths = contentPaths
         if (deckThumbnailPath) json.deckThumbnailPath = deckThumbnailPath
 
-        return json
+        // Drop zip binaries before IPC — the renderer only needs XML + on-disk media paths.
+        // Sending buffers for 850 hymn decks is what froze Windows.
+        return slimPowerpointJson(json)
     } catch (err) {
         console.error("PPT convertion failed for", filePath, err)
 

@@ -9,6 +9,7 @@ import { stopAllInteractions } from "../components/drawer/pages/interactions"
 import { clone, keysToID, removeDeleted } from "../components/helpers/array"
 import { isOutCleared, updateSyncedOutputs } from "../components/helpers/output"
 import { sendMain } from "../IPC/main"
+import { isHymnFolderImporting } from "../converters/powerpoint/hymnImportState"
 import {
     actionTags,
     actions,
@@ -370,6 +371,7 @@ export function unsavedUpdater() {
         if (!s[id]) return
 
         s[id].subscribe((a: any) => {
+            if (isHymnFolderImporting()) return
             if (customSavedListener[id] && a) {
                 a = customSavedListener[id](clone(a))
                 let stringObj

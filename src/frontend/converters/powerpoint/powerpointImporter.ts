@@ -13,11 +13,18 @@ import { hymnBookCategoryId } from "./hymnBookCategory"
 
 // Create (or reuse) the hymn-book category a folder import lands in, and register it as a
 // hymn book so its decks show up in the Hymns tab even if they were not PPT-originated.
-function createHymnBookCategory(name: string): string {
+// Writes the category directly — createCategory() will reuse an empty Shows tab instead
+// of creating the hymn book, which hid imported decks.
+export function createHymnBookCategory(name: string): string {
     const id = hymnBookCategoryId(name)
     if (!id) return ""
 
-    if (!get(categories)[id]) createCategory(name, "book")
+    if (!get(categories)[id]) {
+        categories.update((a) => {
+            a[id] = { name, icon: "book" }
+            return a
+        })
+    }
 
     special.update((a) => {
         a.hymnCategoryIds = toggleHymnCategory(a.hymnCategoryIds, id, true)
@@ -30,7 +37,7 @@ function createHymnBookCategory(name: string): string {
 // Beacon Worship: register the picked system folder in the Hymns LEFT panel, the same way
 // the Media tab keeps its folders. It persists until the operator removes it, and remembers
 // which category its decks were imported into so selecting it can filter the grid.
-function registerHymnFolder(folderPath: string, name: string, categoryId: string) {
+export function registerHymnFolder(folderPath: string, name: string, categoryId: string) {
     if (!folderPath || !categoryId) return
 
     const existingId = findFolderByPath(get(hymnFolders), folderPath)
@@ -75,105 +82,101 @@ export function convertPowerpoint(files: any[], options: { categoryName?: string
         if (categoryId === "all" || categoryId === "unlabeled") categoryId = createCategory("presentation", "presentation", { isDefault: true })
     }
 
-    const tempShows: any[] = []
     const lastBatch = options.importBatch ? options.importBatch.last : true
+    const tempShows = powerpointToTempShows(files, categoryId)
 
     setTimeout(() => {
-        files.forEach(({ name, content }: any) => {
-            // console.log("PPT", content)
-
-            let pkg: PowerPointPackage
-            try {
-                pkg = new PowerPointPackage(content)
-            } catch {
-                return
-            }
-            const presentationPart = pkg.getPresentation()
-            if (!presentationPart) return
-
-            // load font faces
-            const contentPaths = content.contentPaths || {}
-            // loadAllFonts(contentPaths)
-            const fonts = getAllFontNames(contentPaths)
-
-            const convertedSlides = pkg.getSlides()
-            let slides: { [key: string]: Slide } = {}
-            let layouts: SlideData[] = []
-            let firstSlideId = ""
-            convertedSlides.forEach((slide) => {
-                if (!slide) return
-
-                const id = uid()
-
-                slides[id] = {
-                    group: !firstSlideId ? "." : null,
-                    color: null,
-                    settings: { color: slide.bgColor || "" },
-                    notes: slide.notes,
-                    items: slide.items
-                }
-
-                // Beacon Worship: do NOT stamp a transition here. output.ts getOutputTransitions()
-                // treats any truthy transition.type as an override, so the old
-                // { type: "none", duration: 0 } permanently disabled transitions on every hymn
-                // slide and made the global/style transition setting look broken.
-                // Leaving it unset lets the deck inherit the operator's transition.
-                const layoutData = {}
-
-                if (!firstSlideId) {
-                    firstSlideId = id
-                    slides[id].children = []
-                    layouts.push({ id, ...layoutData, children: {} })
-                } else {
-                    slides[firstSlideId].children!.push(id)
-                    layouts[0].children![id] = layoutData
-                }
-            })
-
-            // create show
-            const layoutID = uid()
-            const show: Show = new ShowObj(false, categoryId, layoutID, 0, false)
-            show.name = checkName(name)
-            show.origin = "powerpoint"
-            show.settings.customFonts = fonts
-
-            const meta: any = content["docProps/core.xml"]?.["cp:coreProperties"]
-            if (meta) {
-                show.meta = {
-                    title: meta["dc:title"]?.[0] || show.name,
-                    artist: meta["dc:creator"]?.[0] || ""
-                }
-                show.timestamps = {
-                    created: new Date(meta["dcterms:created"]?.[0]?._ || 0).getTime(),
-                    modified: new Date(meta["dcterms:modified"]?.[0]?._ || 0).getTime(),
-                    used: null
-                }
-            }
-
-            show.slides = slides
-            show.layouts = { [layoutID]: { name: translateText("example.default"), notes: "", slides: layouts } }
-
-            // Beacon Worship: use the deck's own embedded preview as the drawer-row thumbnail.
-            // pptToShow() extracts docProps/thumbnail.* to disk and reports the path here.
-            // Decks without a usable preview fall back to a live first-slide render.
-            if (typeof content.deckThumbnailPath === "string" && content.deckThumbnailPath) {
-                show.thumbnail = content.deckThumbnailPath
-            }
-
-            // Beacon Worship: if the operator has saved a hymn background, apply it to the
-            // newly imported deck so every hymn slide uses it from the start.
-            const hymnBackground = get(special).hymnBackgroundImage
-            if (hymnBackground) {
-                const applied = applyHymnBackground(show, hymnBackground)
-                show.slides = applied.slides
-                show.layouts = applied.layouts
-            }
-
-            tempShows.push({ id: uid(), show })
-        })
-
         setTempShows(tempShows, { suppressFinishedToast: !lastBatch })
     }, 10)
+}
+
+export function powerpointToTempShows(files: any[], categoryId: string): { id: string; show: Show }[] {
+    const tempShows: { id: string; show: Show }[] = []
+
+    files.forEach(({ name, content }: any) => {
+        let pkg: PowerPointPackage
+        try {
+            pkg = new PowerPointPackage(content)
+        } catch {
+            return
+        }
+        const presentationPart = pkg.getPresentation()
+        if (!presentationPart) return
+
+        const contentPaths = content.contentPaths || {}
+        const fonts = getAllFontNames(contentPaths)
+
+        const convertedSlides = pkg.getSlides()
+        const slides: { [key: string]: Slide } = {}
+        const layouts: SlideData[] = []
+        let firstSlideId = ""
+        convertedSlides.forEach((slide) => {
+            if (!slide) return
+
+            const id = uid()
+
+            slides[id] = {
+                group: !firstSlideId ? "." : null,
+                color: null,
+                settings: { color: slide.bgColor || "" },
+                notes: slide.notes,
+                items: slide.items
+            }
+
+            // Beacon Worship: do NOT stamp a transition here. output.ts getOutputTransitions()
+            // treats any truthy transition.type as an override, so the old
+            // { type: "none", duration: 0 } permanently disabled transitions on every hymn
+            // slide and made the global/style transition setting look broken.
+            // Leaving it unset lets the deck inherit the operator's transition.
+            const layoutData = {}
+
+            if (!firstSlideId) {
+                firstSlideId = id
+                slides[id].children = []
+                layouts.push({ id, ...layoutData, children: {} })
+            } else {
+                slides[firstSlideId].children!.push(id)
+                layouts[0].children![id] = layoutData
+            }
+        })
+
+        const layoutID = uid()
+        const show: Show = new ShowObj(false, categoryId, layoutID, 0, false)
+        show.name = checkName(name)
+        show.origin = "powerpoint"
+        show.settings.customFonts = fonts
+
+        const meta: any = content["docProps/core.xml"]?.["cp:coreProperties"]
+        if (meta) {
+            show.meta = {
+                title: meta["dc:title"]?.[0] || show.name,
+                artist: meta["dc:creator"]?.[0] || ""
+            }
+            show.timestamps = {
+                created: new Date(meta["dcterms:created"]?.[0]?._ || 0).getTime(),
+                modified: new Date(meta["dcterms:modified"]?.[0]?._ || 0).getTime(),
+                used: null
+            }
+        }
+
+        show.slides = slides
+        show.layouts = { [layoutID]: { name: translateText("example.default"), notes: "", slides: layouts } }
+
+        if (typeof content.deckThumbnailPath === "string" && content.deckThumbnailPath) {
+            show.thumbnail = content.deckThumbnailPath
+        }
+
+        const hymnBackground = get(special).hymnBackgroundImage
+        if (hymnBackground) {
+            const applied = applyHymnBackground(show, hymnBackground)
+            show.slides = applied.slides
+            show.layouts = applied.layouts
+        }
+
+        tempShows.push({ id: uid(), show })
+    })
+
+    return tempShows
 }
 
 function getAllFontNames(contentPaths: Record<string, string>) {

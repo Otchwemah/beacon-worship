@@ -33,6 +33,7 @@ import { convertLessonsPresentation } from "../converters/lessonsChurch"
 import { convertMediaShout } from "../converters/mediashout"
 import { convertOpenLP } from "../converters/openlp"
 import { convertOpenSong } from "../converters/opensong"
+import { importHymnFolder } from "../converters/powerpoint/hymnFolderImport"
 import { convertPowerpoint } from "../converters/powerpoint/powerpointImporter"
 import { addToProject, importProject, updateRecentlyAddedFiles } from "../converters/project"
 import { convertProPresenter } from "../converters/propresenter"
@@ -546,6 +547,9 @@ export const mainResponses: MainResponses = {
 
         if (!receiveFOLDER[a.channel]) return
         receiveFOLDER[a.channel]()
+    },
+    [ToMain.HYMN_FOLDER_LIST]: (a) => {
+        void importHymnFolder(a)
     },
     [ToMain.IMPORT2]: (a) => {
         const mainData = a.data

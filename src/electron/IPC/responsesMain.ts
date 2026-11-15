@@ -22,7 +22,7 @@ import { ContentProviderRegistry } from "../contentProviders/ContentProviderRegi
 import { deleteBackup, getBackups, restoreFiles } from "../data/backup"
 import { getLocalIPs } from "../data/bonjour"
 import { checkIfMediaDownloaded, downloadLessonsMedia, downloadMedia } from "../data/downloadMedia"
-import { importShow } from "../data/import"
+import { convertPowerpointFile, importShow } from "../data/import"
 import { HYMN_DECK_EXTENSIONS, categoryNameFromFolder, scanImportFolder } from "../data/importFolder"
 import { save } from "../data/save"
 import { _store, appDataPath, config, createStores, getStore, getStoreValue, setStoreValue } from "../data/store"
@@ -88,6 +88,7 @@ export const mainResponses: MainResponses = {
     [Main.IMPORT]: (data) => startImport(data),
     [Main.IMPORT_FILES]: (data) => importFiles(data),
     [Main.IMPORT_FOLDER]: (data) => startImportFolder(data),
+    [Main.PPT_TO_SHOW]: (data) => convertPowerpointFile(data.filePath),
     [Main.BIBLE]: (data) => loadScripture(data),
     [Main.SHOW]: (data) => loadShow(data),
     // MAIN
@@ -325,7 +326,12 @@ export async function startImportFolder(data: { channel: string; extensions: str
     if (result.truncated) sendToMain(ToMain.TOAST, "hymns.folder_truncated")
 
     const categoryName = data.useFolderNameAsCategory === false ? undefined : categoryNameFromFolder(folder)
-    await importShow(data.channel, result.files, { categoryName, folderPath: folder })
+
+    // Send paths only. Converting 850 decks in this process and pushing them over IPC
+    // in one go is what froze Windows and dropped later files. The renderer pulls one
+    // file at a time via PPT_TO_SHOW and yields so the UI can keep up.
+    sendToMain(ToMain.TOAST, "hymns.importing")
+    sendToMain(ToMain.HYMN_FOLDER_LIST, { files: result.files, folderPath: folder, categoryName, truncated: result.truncated })
 }
 
 // BIBLE

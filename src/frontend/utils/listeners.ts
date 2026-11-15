@@ -5,6 +5,7 @@ import { midiInListen } from "../components/actions/midi"
 import { getAllActiveOutputIds, getAllNormalOutputs, updateSyncedOutputs } from "../components/helpers/output"
 import { loadShows } from "../components/helpers/setShow"
 import { getShowCacheId, syncCachedShows, updateCachedShow, updateCachedShows, updateShowsList } from "../components/helpers/show"
+import { isHymnFolderImporting } from "../converters/powerpoint/hymnImportState"
 import {
     $,
     actions,
@@ -72,6 +73,9 @@ import { arrayToObject, eachConnection, filterObjectArray, sendData, timedout } 
 
 export function storeSubscriber() {
     shows.subscribe(async (data) => {
+        // Load folder writes names as it goes; sorting the whole library on every file
+        // is what made the Hymns drawer hitch on Windows.
+        if (isHymnFolderImporting()) return
         if (await hasNewerUpdate("LISTENER_SHOWS", 800)) return
 
         // sendData(REMOTE, { channel: "SHOWS", data })
@@ -84,6 +88,8 @@ export function storeSubscriber() {
     })
 
     showsCache.subscribe(async (data) => {
+        // Do not clone/broadcast the growing cache to output windows during a folder import.
+        if (isHymnFolderImporting()) return
         if (await hasNewerUpdate("LISTENER_SHOWSCACHE")) return // TIMELINE style updates everytime unless set to 20ms
 
         // update "shows" with new "showsCache" data

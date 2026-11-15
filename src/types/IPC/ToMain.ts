@@ -31,6 +31,7 @@ export enum ToMain {
     GET_DYNAMIC_VALUES = "GET_DYNAMIC_VALUES",
     // Main
     IMPORT2 = "IMPORT2",
+    HYMN_FOLDER_LIST = "HYMN_FOLDER_LIST",
     SHOW2 = "SHOW2",
     SAVE2 = "SAVE2",
     REFRESH_SHOWS2 = "REFRESH_SHOWS2",
@@ -65,6 +66,7 @@ export interface ToMainSendPayloads {
     [ToMain.GET_DYNAMIC_VALUES]: string[]
     ///
     [ToMain.IMPORT2]: { channel: string; data: ({ content: Buffer | string | object; name?: string; extension?: string } | string)[]; categoryName?: string; folderPath?: string; importBatch?: { done: number; total: number; last: boolean } }
+    [ToMain.HYMN_FOLDER_LIST]: { files: string[]; folderPath: string; categoryName?: string; truncated?: boolean }
     [ToMain.SHOW2]: { error?: string; err?: NodeJS.ErrnoException; id: string }
     [ToMain.SAVE2]: { closeWhenFinished: boolean; customTriggers: any }
     [ToMain.REFRESH_SHOWS2]: TrimmedShows
