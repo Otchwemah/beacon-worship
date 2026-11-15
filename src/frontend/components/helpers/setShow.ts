@@ -173,6 +173,10 @@ const currentlyLoading = new Map<string, Promise<void>>()
 const lastFailed = new Map<string, number>()
 
 async function loadSingleShow(id: string) {
+    // Folder-indexed hymns are still the original .pptx. There is no .show file
+    // until the operator goes live (ensureHymnConverted). Do not mark them missing.
+    if (get(shows)[id]?.quickAccess?.sourcePath && !get(showsCache)[id]) return
+
     let promise = currentlyLoading.get(id)
     if (promise) return promise
 

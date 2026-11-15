@@ -90,5 +90,8 @@ export function repairHymnTransitions(show: ShowLike): { layouts: Record<string,
 export function shouldRepairHymnTransitions(show: ShowLike, repairedIds: string[] | null | undefined, showId: string): boolean {
     if (!showId) return false
     if ((repairedIds || []).includes(showId)) return false
+    // Folder-indexed hymns have no layouts yet; converting 850 of them at startup
+    // is exactly the freeze this repair must not cause.
+    if ((show as any)?.quickAccess?.sourcePath) return false
     return show?.origin === "powerpoint"
 }

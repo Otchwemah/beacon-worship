@@ -8,6 +8,7 @@
     import { history } from "../../helpers/history"
     import { loadShows } from "../../helpers/setShow"
     import MaterialFilePicker from "../../inputs/MaterialFilePicker.svelte"
+    import { isHymnFileStub } from "../../drawer/hymns/hymnFolders"
     import { applyHymnBackground, filterHymnDecks } from "../../drawer/hymns/hymns"
 
     // Beacon Worship — saved hymn background, configured in Settings (General).
@@ -33,7 +34,7 @@
 
         special.update((a) => ({ ...a, hymnBackgroundImage: path }))
 
-        const ids = unarchivedDecks.map((s) => s.id)
+        const ids = unarchivedDecks.filter((s) => !isHymnFileStub(s)).map((s) => s.id)
         if (!ids.length) {
             newToast(path ? "hymns.background_saved" : "hymns.background_cleared")
             return

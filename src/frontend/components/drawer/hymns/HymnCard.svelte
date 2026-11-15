@@ -4,6 +4,7 @@
     import { activePage, activeShow, outputs, shows, showsCache } from "../../../stores"
     import { encodeFilePath } from "../../helpers/media"
     import { findMatchingOut } from "../../helpers/output"
+    import { isHymnFileStub } from "./hymnFolders"
     import { loadShows } from "../../helpers/setShow"
     import Icon from "../../helpers/Icon.svelte"
     import SlidePreviewBox from "../../inputs/SlidePreviewBox.svelte"
@@ -50,9 +51,9 @@
     })
 
     function requestPreview() {
-        // no storedThumbnail short-circuit: the first slide always wins, so the deck must be
-        // loaded even when the .pptx shipped an embedded preview.
-        if (previewLoadRequested || $showsCache[id]) return
+        // Folder-loaded hymns are still the original .pptx. Do not convert them just to
+        // draw a thumbnail — that is what froze the whole app when the grid scrolled.
+        if (previewLoadRequested || $showsCache[id] || isHymnFileStub($shows[id] || show)) return
         previewLoadRequested = true
         loadShows([id])
     }
@@ -71,8 +72,7 @@
 
     async function goLive(e: MouseEvent) {
         select()
-        await loadShows([id])
-        presentDeck(id, !e.altKey)
+        await presentDeck(id, !e.altKey)
     }
 
     let clickTimer: NodeJS.Timeout | null = null

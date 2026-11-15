@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { ShowList } from "../../../../types/Show"
-import { createFolderEntry, filterDecksByFolder, findFolderByPath, getFolderCategoryId, getFolderRows, normaliseFolderPath, removeFolder } from "./hymnFolders"
+import { createFolderEntry, fileNameFromPath, filterDecksByFolder, findFolderByPath, getFolderCategoryId, getFolderRows, hymnCategoryIdFromFolder, hymnIdFromPath, isHymnFileStub, normaliseFolderPath, pathHash, removeFolder } from "./hymnFolders"
 
 const deck = (id: string, category: string | null): ShowList => ({ id, name: id, category, timestamps: { created: 0, modified: null, used: null } })
 
@@ -28,6 +28,34 @@ describe("normaliseFolderPath / findFolderByPath", () => {
         expect(findFolderByPath(folders, "/nope")).toBe("")
         expect(findFolderByPath(folders, "")).toBe("")
         expect(findFolderByPath({}, "/a")).toBe("")
+    })
+})
+
+describe("pathHash / hymn ids", () => {
+    it("gives two folders with the same name different category ids", () => {
+        expect(hymnCategoryIdFromFolder("/hymns/PHB 2019", "Hymns")).not.toBe(hymnCategoryIdFromFolder("/other/PHB 2019", "Hymns"))
+        expect(hymnCategoryIdFromFolder("/hymns/PHB 2019", "Hymns")).toBe(hymnCategoryIdFromFolder("/hymns/PHB 2019/", "Hymns"))
+    })
+
+    it("gives a stable show id per file path", () => {
+        expect(hymnIdFromPath("/h/PHB_001.pptx")).toBe(hymnIdFromPath("/h/PHB_001.pptx"))
+        expect(hymnIdFromPath("/h/PHB_001.pptx")).not.toBe(hymnIdFromPath("/h/PHB_002.pptx"))
+        expect(hymnIdFromPath("/h/PHB_001.pptx")).toMatch(/^hymn_/)
+    })
+
+    it("strips the deck extension for the display name", () => {
+        expect(fileNameFromPath("/h/PHB_108.pptx")).toBe("PHB_108")
+        expect(fileNameFromPath("C:\\\\Hymns\\\\PHB 1.PPTX")).toBe("PHB 1")
+    })
+
+    it("recognises folder-indexed stubs", () => {
+        expect(isHymnFileStub({ quickAccess: { sourcePath: "/h/a.pptx" } })).toBe(true)
+        expect(isHymnFileStub({ quickAccess: {} })).toBe(false)
+        expect(isHymnFileStub(null)).toBe(false)
+    })
+
+    it("hashes are case-insensitive like the folder path", () => {
+        expect(pathHash("/Hymns/PHB")).toBe(pathHash("/hymns/phb"))
     })
 })
 

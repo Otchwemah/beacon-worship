@@ -3,7 +3,7 @@ import { uid } from "uid"
 import type { Show, Slide, SlideData } from "../../../types/Show"
 import { ShowObj } from "../../classes/Show"
 import { applyHymnBackground, toggleHymnCategory } from "../../components/drawer/hymns/hymns"
-import { createFolderEntry, findFolderByPath } from "../../components/drawer/hymns/hymnFolders"
+import { createFolderEntry, findFolderByPath, hymnCategoryIdFromFolder } from "../../components/drawer/hymns/hymnFolders"
 import { checkName } from "../../components/helpers/show"
 import { categories, drawerTabsData, hymnFolders, special } from "../../stores"
 import { translateText } from "../../utils/language"
@@ -15,8 +15,8 @@ import { hymnBookCategoryId } from "./hymnBookCategory"
 // hymn book so its decks show up in the Hymns tab even if they were not PPT-originated.
 // Writes the category directly — createCategory() will reuse an empty Shows tab instead
 // of creating the hymn book, which hid imported decks.
-export function createHymnBookCategory(name: string): string {
-    const id = hymnBookCategoryId(name)
+export function createHymnBookCategory(name: string, folderPath = ""): string {
+    const id = hymnCategoryIdFromFolder(folderPath, name) || hymnBookCategoryId(name)
     if (!id) return ""
 
     if (!get(categories)[id]) {
@@ -75,7 +75,7 @@ export function convertPowerpoint(files: any[], options: { categoryName?: string
     // to the selected Shows category (or Presentation if none is selected).
     let categoryId = ""
     if (options.categoryName) {
-        categoryId = createHymnBookCategory(options.categoryName)
+        categoryId = createHymnBookCategory(options.categoryName, options.folderPath)
         if (options.folderPath) registerHymnFolder(options.folderPath, options.categoryName, categoryId)
     } else {
         categoryId = get(drawerTabsData).shows?.activeSubTab || ""

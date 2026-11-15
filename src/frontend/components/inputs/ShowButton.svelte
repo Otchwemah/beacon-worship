@@ -14,6 +14,7 @@
     import { checkName } from "../helpers/show"
     import { swichProjectItem, updateOut } from "../helpers/showActions"
     import { prepareLiveOverride, shouldOverrideForType } from "../output/liveOverride"
+    import { isHymnFileStub } from "../drawer/hymns/hymnFolders"
     import { presentDeck } from "../drawer/hymns/presentDeck"
     import T from "../helpers/T.svelte"
     import { joinTime, secondsToTime } from "../helpers/time"
@@ -160,10 +161,11 @@
         // guard that returns would blank the output without putting anything back.
         const overrideLive = !e.detail.alt && shouldOverrideForType(type)
 
-        if (type === "show" && $showsCache[id]?.settings && $showsCache[id].layouts[$showsCache[id].settings.activeLayout]?.slides?.length) {
+        if (type === "show") {
             // Shared with the Hymns grid tiles so list and grid cannot drift on the
-            // live-override policy or the already-live guard.
-            presentDeck(id, !e.detail.alt)
+            // live-override policy or the already-live guard. Folder-loaded hymns convert
+            // the original .pptx here, not at folder load.
+            await presentDeck(id, !e.detail.alt)
         } else if (type === "image" || type === "video") {
             let outputStyle = $styles[currentOutput.style || ""]
             const mediaData = $media[id] || {}
@@ -264,7 +266,7 @@
     // what produced the empty white boxes in the Hymns drawer), so it is only a last resort
     // for decks whose first slide cannot be rendered at all.
     let previewLoadRequested = false
-    $: if (type === "show" && id && !previewLoadRequested && !$showsCache[id]) {
+    $: if (type === "show" && id && !previewLoadRequested && !$showsCache[id] && !isHymnFileStub($shows[id] || show)) {
         previewLoadRequested = true
         loadShows([id])
     }

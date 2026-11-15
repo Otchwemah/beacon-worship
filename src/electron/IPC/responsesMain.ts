@@ -327,10 +327,8 @@ export async function startImportFolder(data: { channel: string; extensions: str
 
     const categoryName = data.useFolderNameAsCategory === false ? undefined : categoryNameFromFolder(folder)
 
-    // Send paths only. Converting 850 decks in this process and pushing them over IPC
-    // in one go is what froze Windows and dropped later files. The renderer pulls one
-    // file at a time via PPT_TO_SHOW and yields so the UI can keep up.
-    sendToMain(ToMain.TOAST, "hymns.importing")
+    // Paths only. The renderer indexes the files into the Hymns panel immediately;
+    // conversion of a .pptx happens later, when that hymn goes live.
     sendToMain(ToMain.HYMN_FOLDER_LIST, { files: result.files, folderPath: folder, categoryName, truncated: result.truncated })
 }
 

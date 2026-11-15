@@ -5,9 +5,9 @@ import type { Categories } from "../../../../types/Tabs"
 //
 // Mirrors the Media tab model: the operator adds a folder from the LEFT panel, it is
 // persisted, and it stays there until they remove it. Unlike media (read live from disk),
-// hymn decks are converted into the library on load, so each folder remembers the shows
-// category its decks were imported into. Selecting the folder filters the grid to that
-// category; "All" spans every folder.
+// hymn decks are indexed on load (the original .pptx stays on disk) and converted only
+// when that hymn goes live. Each folder remembers the category its decks belong to.
+// Selecting the folder filters the grid to that category; "All" spans every folder.
 
 export function getFolderCategoryId(folder: { categoryId?: string } | null | undefined): string {
     return folder?.categoryId || ""
@@ -23,6 +23,41 @@ export function findFolderByPath(folders: Categories, path: string): string {
 export function normaliseFolderPath(path: string): string {
     // macOS/Windows are case-insensitive and tolerate trailing separators
     return (path || "").replace(/[\\/]+$/, "").toLowerCase()
+}
+
+// Stable ids so loading the same folder twice does not duplicate decks, and two folders
+// with the same display name (e.g. two "Hymns" directories) stay separate.
+export function pathHash(path: string): string {
+    const s = normaliseFolderPath(path)
+    if (!s) return ""
+    let hash = 0
+    for (let i = 0; i < s.length; i++) {
+        hash = (hash << 5) - hash + s.charCodeAt(i)
+        hash |= 0
+    }
+    return (hash < 0 ? "i" : "a") + Math.abs(hash).toString(36)
+}
+
+export function hymnIdFromPath(filePath: string): string {
+    return "hymn_" + pathHash(filePath)
+}
+
+export function hymnCategoryIdFromFolder(folderPath: string, name: string): string {
+    if (folderPath) return "hymnfolder_" + pathHash(folderPath)
+    return (name || "")
+        .toLowerCase()
+        .replace(/[()]/g, "")
+        .trim()
+        .replace(/\s+/g, "_")
+}
+
+export function fileNameFromPath(filePath: string): string {
+    const base = (filePath || "").replace(/\\/g, "/").split("/").pop() || "Hymn"
+    return base.replace(/\.(pptx|ppt|ppsx|pps)$/i, "") || "Hymn"
+}
+
+export function isHymnFileStub(show: { quickAccess?: any } | null | undefined): boolean {
+    return !!show?.quickAccess?.sourcePath
 }
 
 export type HymnFolderEntry = { id: string; name: string; path: string; categoryId: string; icon: string }

@@ -105,6 +105,7 @@ describe("repairHymnTransitions", () => {
 describe("shouldRepairHymnTransitions", () => {
     it("repairs PowerPoint-origin decks", () => {
         expect(shouldRepairHymnTransitions({ origin: "powerpoint" }, [], "show1")).toBe(true)
+        expect(shouldRepairHymnTransitions({ origin: "powerpoint", quickAccess: { sourcePath: "/h/a.pptx" } } as any, [], "stub")).toBe(false)
         expect(shouldRepairHymnTransitions({ origin: "powerpoint" }, null, "show1")).toBe(true)
     })
 

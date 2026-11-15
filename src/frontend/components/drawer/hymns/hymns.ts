@@ -5,10 +5,9 @@ import type { ShowList } from "../../../../types/Show"
  *
  * The Hymns tab is a standalone bottom drawer tab surfacing the operator's hymn decks.
  *
- * Where hymn decks come from: importing a .pptx/.ppt/.key through the PowerPoint importer
- * (converters/powerpoint/powerpointImporter.ts) produces a normal Beacon Worship show with
- * `origin: "powerpoint"`, filed under a category (default "presentation"). `origin` is part
- * of TrimmedShow, so it is already present in the drawer's show list — identifying hymn
+ * Where hymn decks come from: Load folder indexes .pptx files as stubs (`origin:
+ * "powerpoint"`, `quickAccess.sourcePath`). Conversion to a Beacon show happens when that
+ * hymn goes live, not at folder load. `origin` is part of TrimmedShow, so identifying hymn
  * decks needs no extra show loading.
  *
  * These functions are pure and unit-tested (hymns.test.ts).

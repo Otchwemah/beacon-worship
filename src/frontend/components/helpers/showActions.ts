@@ -554,6 +554,8 @@ export function startShowSync(showId: string) {
 export async function startShow(showId: string) {
     if (!showId) return
 
+    const { ensureHymnConverted } = await import("../../converters/powerpoint/hymnConvert")
+    await ensureHymnConverted(showId)
     await loadShows([showId])
     if (!get(showsCache)[showId]) return
     const activeLayout = get(showsCache)[showId].settings?.activeLayout || ""

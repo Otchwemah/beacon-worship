@@ -1,5 +1,6 @@
 import { get } from "svelte/store"
 import { outputs, showsCache } from "../../../stores"
+import { ensureHymnConverted } from "../../../converters/powerpoint/hymnConvert"
 import { getActiveOutputs, setOutput } from "../../helpers/output"
 import { getLayoutRef } from "../../helpers/show"
 import { updateOut } from "../../helpers/showActions"
@@ -17,7 +18,10 @@ export type PresentDeckResult = "presented" | "already-live" | "unavailable"
  * @param showId deck to present
  * @param extra false when Alt is held — skips updateOut's extra actions, and the override
  */
-export function presentDeck(showId: string, extra = true): PresentDeckResult {
+export async function presentDeck(showId: string, extra = true): Promise<PresentDeckResult> {
+    // Folder-loaded hymns are still .pptx on disk until this moment.
+    await ensureHymnConverted(showId)
+
     const cache = get(showsCache)
     const show = cache[showId]
     const layoutId = show?.settings?.activeLayout
