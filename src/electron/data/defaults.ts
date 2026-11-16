@@ -40,6 +40,7 @@ export const defaultSettings: { [key in SaveListSettings]: any } = {
     serverData: {},
     maxConnections: 10,
     mediaFolders: {},
+    hymnFolders: {},
     audioFolders: {},
     resized: {
         leftPanel: 290,
