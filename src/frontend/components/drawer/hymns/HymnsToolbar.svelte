@@ -4,7 +4,7 @@
     import Icon from "../../helpers/Icon.svelte"
     import { startShow } from "../../helpers/showActions"
     import MaterialButton from "../../inputs/MaterialButton.svelte"
-    import MaterialZoom from "../../inputs/MaterialZoom.svelte"
+
 
     // Beacon Worship — Hymns toolbar, directly above the grid it filters.
     // "Load folder" lives in the LEFT panel (like the Media tab); this bar only searches,
@@ -73,8 +73,14 @@
     </div>
 
     {#if mode === "grid"}
-        <div class="zoom" style="--size: 34px;">
-            <MaterialZoom {columns} defaultValue={4} min={1} max={12} on:change={setColumns} />
+        <div class="zoom-btns">
+            <button class="zoom-btn" title="Larger tiles" disabled={columns <= 1} on:click={() => setColumns({ detail: columns - 1 })}>
+                <Icon id="remove" size={1} />
+            </button>
+            <span class="zoom-label">{columns}</span>
+            <button class="zoom-btn" title="Smaller tiles" disabled={columns >= 12} on:click={() => setColumns({ detail: columns + 1 })}>
+                <Icon id="add" size={1} />
+            </button>
         </div>
     {/if}
 </div>
@@ -171,10 +177,41 @@
         opacity: 1;
     }
 
-    .zoom {
+    .zoom-btns {
         display: flex;
         align-items: center;
-        height: 30px;
+        gap: 2px;
         flex-shrink: 0;
+        border: 1px solid var(--primary-lighter);
+        border-radius: 8px;
+        overflow: hidden;
+        height: 30px;
+    }
+    .zoom-btn {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 100%;
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        color: var(--text);
+        opacity: 0.75;
+    }
+    .zoom-btn:hover:not(:disabled) {
+        background-color: var(--hover);
+        opacity: 1;
+    }
+    .zoom-btn:disabled {
+        opacity: 0.3;
+        cursor: default;
+    }
+    .zoom-label {
+        min-width: 1.4em;
+        text-align: center;
+        font-size: 0.8em;
+        font-variant-numeric: tabular-nums;
+        opacity: 0.8;
     }
 </style>

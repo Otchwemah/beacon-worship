@@ -7,7 +7,7 @@
     import T from "../../helpers/T.svelte"
     import MaterialButton from "../../inputs/MaterialButton.svelte"
     import { filterHymnDecks, getHymnCategoryIds } from "../hymns/hymns"
-    import { getFolderRows } from "../hymns/hymnFolders"
+    import { decksFromHymnFolders, getFolderRows } from "../hymns/hymnFolders"
     import { sortObject } from "../../helpers/array"
     import NavigationSections from "./NavigationSections.svelte"
 
@@ -27,7 +27,12 @@
         .filter(([, level]) => level === "none")
         .map(([id]) => id)
 
-    $: visibleDecks = filterHymnDecks($sortedShowsList, { category: "all", hymnCategoryIds, hiddenCategoryIds })
+    $: libraryDecks = filterHymnDecks($sortedShowsList, { category: "all", hymnCategoryIds, hiddenCategoryIds })
+    $: folderDecks = decksFromHymnFolders($hymnFolders)
+    $: visibleDecks = (() => {
+        const seen = new Set(libraryDecks.map((d) => d.id))
+        return libraryDecks.concat(folderDecks.filter((d) => !seen.has(d.id)))
+    })()
     $: unarchivedDecks = visibleDecks.filter((s) => !$categories[s.category || ""]?.isArchive)
     $: unlabeledCount = unarchivedDecks.filter((s) => !s.category || !$categories[s.category]).length
 

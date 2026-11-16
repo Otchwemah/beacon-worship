@@ -1,20 +1,16 @@
 <script lang="ts">
     import { get } from "svelte/store"
-    import { activeProfile, categories, showsCache, sortedShowsList, special } from "../../../stores"
+    import { activeProfile, categories, saved, showsCache, sortedShowsList, special } from "../../../stores"
     import { newToast } from "../../../utils/common"
     import { getAccess } from "../../../utils/profile"
     import { imageExtensions } from "../../../values/extensions"
     import T from "../../helpers/T.svelte"
-    import { history } from "../../helpers/history"
-    import { loadShows } from "../../helpers/setShow"
     import MaterialFilePicker from "../../inputs/MaterialFilePicker.svelte"
-    import { isHymnFileStub } from "../../drawer/hymns/hymnFolders"
     import { applyHymnBackground, filterHymnDecks } from "../../drawer/hymns/hymns"
 
-    // Beacon Worship — saved hymn background, configured in Settings (General).
-    // Selecting an image replaces the background on every hymn slide and is persisted in
-    // special.hymnBackgroundImage (also applied to future PowerPoint imports). This only
-    // edits show data; it never calls setOutput itself.
+    // Tile art always follows special.hymnBackgroundImage (instant).
+    // Already-converted decks in memory get the same image on their slides — no
+    // loadShows of the whole library, so this stays in seconds even at 850 hymns.
 
     $: profile = $activeProfile ? getAccess("shows") : {}
     $: readOnly = profile.global === "read"
@@ -28,36 +24,30 @@
     $: unarchivedDecks = visibleDecks.filter((s) => !$categories[s.category || ""]?.isArchive)
 
     let applying = false
-    async function setBackground(e: any) {
+    function setBackground(e: any) {
         const path = (e.detail || "").trim()
         if (applying || path === hymnBackground) return
 
         special.update((a) => ({ ...a, hymnBackgroundImage: path }))
 
-        const ids = unarchivedDecks.filter((s) => !isHymnFileStub(s)).map((s) => s.id)
-        if (!ids.length) {
-            newToast(path ? "hymns.background_saved" : "hymns.background_cleared")
-            return
-        }
-
-        applying = true
-        try {
-            await loadShows(ids)
+        const cache = get(showsCache)
+        const ids = unarchivedDecks.map((s) => s.id).filter((id) => cache[id]?.slides)
+        if (ids.length) {
+            applying = true
             const now = Date.now()
-            const data = ids
-                .map((id) => {
-                    const show = get(showsCache)[id]
-                    if (!show) return null
-                    const { slides, layouts } = applyHymnBackground(show, path)
-                    return { id, show: { slides, layouts, timestamps: { ...show.timestamps, modified: now } } }
+            showsCache.update((a) => {
+                ids.forEach((id) => {
+                    if (!a[id]) return
+                    const applied = applyHymnBackground(a[id], path)
+                    a[id] = { ...a[id], slides: applied.slides, layouts: applied.layouts, timestamps: { ...a[id].timestamps, modified: now } }
                 })
-                .filter(Boolean)
-
-            if (data.length) history({ id: "SHOWS", newData: { data, replace: true }, location: { page: "drawer" } })
-            newToast(path ? "hymns.background_applied" : "hymns.background_cleared")
-        } finally {
+                return a
+            })
+            saved.set(false)
             applying = false
         }
+
+        newToast(path ? "hymns.background_applied" : "hymns.background_cleared")
     }
 </script>
 
@@ -75,8 +65,7 @@
 
     .hint {
         margin: 0;
-        font-size: 0.75em;
-        opacity: 0.6;
-        line-height: 1.4;
+        font-size: 0.85em;
+        opacity: 0.7;
     }
 </style>

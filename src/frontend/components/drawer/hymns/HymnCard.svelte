@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte"
     import type { ShowList } from "../../../../types/Show"
-    import { activePage, activeShow, outputs, shows, showsCache } from "../../../stores"
+    import { activePage, activeShow, outputs, shows, showsCache, special } from "../../../stores"
     import { encodeFilePath } from "../../helpers/media"
     import { findMatchingOut } from "../../helpers/output"
     import { isHymnFileStub } from "./hymnFolders"
@@ -58,8 +58,9 @@
         loadShows([id])
     }
 
-    $: livePreview = getSlidePreview($showsCache[id])
-    $: thumbnailPath = livePreview ? "" : storedThumbnail
+    $: hymnBg = $special.hymnBackgroundImage || ""
+    $: livePreview = hymnBg ? null : getSlidePreview($showsCache[id])
+    $: thumbnailPath = livePreview || hymnBg ? "" : storedThumbnail
     $: isLive = findMatchingOut(id, $outputs) !== null
     $: isActive = $activeShow?.id === id
 
@@ -103,14 +104,22 @@
 </script>
 
 <button bind:this={elem} class="hymn-card" class:active={isActive} class:live={isLive} class:selected on:click={click} on:dblclick={dblclick} on:keydown={keydown} title={show.name} data-hymn-id={id}>
-    <div class="thumb">
+    <div
+        class="thumb"
+        class:has-bg={!!hymnBg}
+        style={hymnBg ? `background-image: url(\"${encodeFilePath(hymnBg)}\")` : ""}
+    >
         {#if livePreview}
             <SlidePreviewBox preview={livePreview} />
         {:else if thumbnailPath}
             <img src={encodeFilePath(thumbnailPath)} alt="" loading="lazy" draggable="false" />
-        {:else}
+        {:else if !hymnBg}
             <div class="placeholder">
-                <Icon id="book" size={2} />
+                {#if number !== null}
+                    <span class="hero-num">{number}</span>
+                {:else}
+                    <Icon id="book" size={2} />
+                {/if}
             </div>
         {/if}
 
@@ -164,10 +173,29 @@
         border-radius: 6px;
         overflow: hidden;
         background-color: var(--primary-darkest);
+        background-size: cover;
+        background-position: center;
         display: flex;
         align-items: center;
         justify-content: center;
         flex-shrink: 0;
+    }
+
+    .thumb.has-bg::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(180deg, rgb(0 0 0 / 0.05), rgb(0 0 0 / 0.45));
+        pointer-events: none;
+    }
+
+    .hero-num {
+        font-size: 1.8em;
+        font-weight: 800;
+        color: var(--secondary);
+        font-variant-numeric: tabular-nums;
+        line-height: 1;
+        z-index: 1;
     }
 
     .thumb img {
@@ -193,6 +221,7 @@
 
     .number {
         position: absolute;
+        z-index: 2;
         bottom: 4px;
         inset-inline-start: 4px;
         padding: 1px 6px;

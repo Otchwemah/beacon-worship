@@ -2,7 +2,7 @@
     import { Main } from "../../../../types/IPC/Main"
     import type { ShowList } from "../../../../types/Show"
     import { sendMain } from "../../../IPC/main"
-    import { activePopup, activeProfile, activeShow, categories, drawer, focusedArea, hymnFolders, hymnOptions, hymnSearchValue, showsCache, sortedShowsList, special } from "../../../stores"
+    import { activePopup, activeProfile, activeShow, categories, drawer, focusedArea, hymnFolders, hymnOptions, hymnSearchValue, sortedShowsList, special } from "../../../stores"
     import { getAccess } from "../../../utils/profile"
     import T from "../../helpers/T.svelte"
     import Icon from "../../helpers/Icon.svelte"
@@ -52,7 +52,7 @@
         hymnCategoryIds,
         archivedCategoryIds,
         hiddenCategoryIds
-    }).filter((deck) => !deck.quickAccess?.sourcePath || $showsCache[deck.id])
+    })
     $: hymnDecks = sortHymnDecks(mergeHymnDecks([...folderDecks, ...importedDecks]))
 
     function mergeHymnDecks(list: ShowList[]): ShowList[] {
