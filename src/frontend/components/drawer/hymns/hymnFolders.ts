@@ -60,10 +60,47 @@ export function isHymnFileStub(show: { quickAccess?: any } | null | undefined): 
     return !!show?.quickAccess?.sourcePath
 }
 
-export type HymnFolderEntry = { id: string; name: string; path: string; categoryId: string; icon: string }
+export type HymnFileEntry = { id: string; name: string; path: string }
+export type HymnFolderEntry = { id: string; name: string; path: string; categoryId: string; icon: string; files?: HymnFileEntry[] }
 
-export function createFolderEntry(id: string, name: string, path: string, categoryId: string): HymnFolderEntry {
-    return { id, name: name || "Hymns", path, categoryId, icon: "folder" }
+export function createFolderEntry(id: string, name: string, path: string, categoryId: string, files: HymnFileEntry[] = []): HymnFolderEntry {
+    return { id, name: name || "Hymns", path, categoryId, icon: "folder", files }
+}
+
+export function fileToShowList(file: HymnFileEntry, categoryId: string): ShowList {
+    return {
+        id: file.id,
+        name: file.name,
+        category: categoryId || null,
+        origin: "powerpoint",
+        timestamps: { created: 0, modified: null, used: null },
+        quickAccess: { sourcePath: file.path }
+    }
+}
+
+export function decksFromHymnFolders(folders: Categories, folderId?: string): ShowList[] {
+    const entries = Object.entries(folders || {})
+    const selected = folderId && folders?.[folderId] ? entries.filter(([id]) => id === folderId) : entries
+    const decks: ShowList[] = []
+    const seen = new Set<string>()
+    selected.forEach(([, folder]) => {
+        const categoryId = getFolderCategoryId(folder)
+        ;(folder?.files || []).forEach((file) => {
+            if (!file?.id || seen.has(file.id)) return
+            seen.add(file.id)
+            decks.push(fileToShowList(file, categoryId))
+        })
+    })
+    return decks
+}
+
+export function findHymnFile(folders: Categories, showId: string): { id: string; name: string; path: string; categoryId: string } | null {
+    if (!showId) return null
+    for (const folder of Object.values(folders || {})) {
+        const file = (folder?.files || []).find((f) => f.id === showId)
+        if (file) return { ...file, categoryId: getFolderCategoryId(folder) }
+    }
+    return null
 }
 
 /**
@@ -93,7 +130,7 @@ export function getFolderRows(folders: Categories, decks: ShowList[]): { id: str
                 label: folder?.name || id,
                 icon: folder?.icon || "folder",
                 path: folder?.path || "",
-                count: categoryId ? decks.filter((deck) => deck.category === categoryId).length : 0
+                count: Array.isArray(folder?.files) ? folder.files.length : categoryId ? decks.filter((deck) => deck.category === categoryId).length : 0
             }
         })
         .sort((a, b) => a.label.localeCompare(b.label, undefined, { numeric: true, sensitivity: "base" }))

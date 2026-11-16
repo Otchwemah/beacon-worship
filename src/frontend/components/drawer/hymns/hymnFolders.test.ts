@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { ShowList } from "../../../../types/Show"
-import { createFolderEntry, fileNameFromPath, filterDecksByFolder, findFolderByPath, getFolderCategoryId, getFolderRows, hymnCategoryIdFromFolder, hymnIdFromPath, isHymnFileStub, normaliseFolderPath, pathHash, removeFolder } from "./hymnFolders"
+import { createFolderEntry, decksFromHymnFolders, fileNameFromPath, filterDecksByFolder, findFolderByPath, findHymnFile, getFolderCategoryId, getFolderRows, hymnCategoryIdFromFolder, hymnIdFromPath, isHymnFileStub, normaliseFolderPath, pathHash, removeFolder } from "./hymnFolders"
 
 const deck = (id: string, category: string | null): ShowList => ({ id, name: id, category, timestamps: { created: 0, modified: null, used: null } })
 
@@ -61,7 +61,7 @@ describe("pathHash / hymn ids", () => {
 
 describe("createFolderEntry / getFolderCategoryId", () => {
     it("builds a folder row linked to its category", () => {
-        expect(createFolderEntry("f9", "Ga Hymnal", "/h/Ga", "ga_hymnal")).toEqual({ id: "f9", name: "Ga Hymnal", path: "/h/Ga", categoryId: "ga_hymnal", icon: "folder" })
+        expect(createFolderEntry("f9", "Ga Hymnal", "/h/Ga", "ga_hymnal")).toEqual({ id: "f9", name: "Ga Hymnal", path: "/h/Ga", categoryId: "ga_hymnal", icon: "folder", files: [] })
     })
 
     it("falls back to Hymns for an empty name", () => {
@@ -73,6 +73,19 @@ describe("createFolderEntry / getFolderCategoryId", () => {
         expect(getFolderCategoryId({})).toBe("")
         expect(getFolderCategoryId(null)).toBe("")
         expect(getFolderCategoryId(undefined)).toBe("")
+    })
+})
+
+describe("decksFromHymnFolders / findHymnFile", () => {
+    it("lists indexed files without needing the shows library", () => {
+        const folders = {
+            f1: { name: "PHB", path: "/h", categoryId: "phb", files: [{ id: "hymn_1", name: "PHB_001", path: "/h/1.pptx" }] },
+            f2: { name: "MHB", path: "/m", categoryId: "mhb", files: [{ id: "hymn_2", name: "MHB_001", path: "/m/1.pptx" }] }
+        }
+        expect(decksFromHymnFolders(folders).map((d) => d.id)).toEqual(["hymn_1", "hymn_2"])
+        expect(decksFromHymnFolders(folders, "f1").map((d) => d.id)).toEqual(["hymn_1"])
+        expect(findHymnFile(folders, "hymn_2")?.path).toBe("/m/1.pptx")
+        expect(findHymnFile(folders, "missing")).toBeNull()
     })
 })
 

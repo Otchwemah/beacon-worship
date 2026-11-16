@@ -5,7 +5,8 @@ import { AudioPlayer } from "../../audio/audioPlayer"
 import type { ShowObj } from "../../classes/Show"
 import { fixShowIssues } from "../../converters/importHelpers"
 import { requestMain } from "../../IPC/main"
-import { cachedShowsData, categories, notFound, saved, shows, showsCache, textCache } from "../../stores"
+import { cachedShowsData, categories, hymnFolders, notFound, saved, shows, showsCache, textCache } from "../../stores"
+import { findHymnFile } from "../drawer/hymns/hymnFolders"
 import { invalidateSearchIndex } from "../../utils/searchFast"
 import { Main } from "./../../../types/IPC/Main"
 import { getFileName } from "./media"
@@ -173,9 +174,21 @@ const currentlyLoading = new Map<string, Promise<void>>()
 const lastFailed = new Map<string, number>()
 
 async function loadSingleShow(id: string) {
-    // Folder-indexed hymns are still the original .pptx. There is no .show file
-    // until the operator goes live (ensureHymnConverted). Do not mark them missing.
-    if (get(shows)[id]?.quickAccess?.sourcePath && !get(showsCache)[id]) return
+    if (!get(showsCache)[id] && (get(shows)[id]?.quickAccess?.sourcePath || findHymnFile(get(hymnFolders), id))) {
+        let converting = currentlyLoading.get(id)
+        if (converting) return converting
+        converting = (async () => {
+            const { ensureHymnConverted } = await import("../../converters/powerpoint/hymnConvert")
+            await ensureHymnConverted(id)
+        })()
+        currentlyLoading.set(id, converting)
+        try {
+            await converting
+        } finally {
+            currentlyLoading.delete(id)
+        }
+        return
+    }
 
     let promise = currentlyLoading.get(id)
     if (promise) return promise

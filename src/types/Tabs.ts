@@ -9,8 +9,9 @@ export interface Category {
     path?: string
     id?: string
     // Beacon Worship: hymn folders link the picked system folder to the shows category
-    // its decks were imported into.
+    // its decks were imported into. `files` is the pptx index — not converted shows.
     categoryId?: string
+    files?: { id: string; name: string; path: string }[]
     type?: "youtube" | "vimeo"
     mediaType?: "background" | "foreground"
     url?: string

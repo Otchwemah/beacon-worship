@@ -1,23 +1,17 @@
 import { get } from "svelte/store"
-import type { TrimmedShow } from "../../../types/Show"
 import { fileNameFromPath, findFolderByPath, getFolderCategoryId, hymnIdFromPath } from "../../components/drawer/hymns/hymnFolders"
-import { updateShowsList } from "../../components/helpers/show"
-import { activePopup, hymnFolders, saved, shows } from "../../stores"
+import type { HymnFileEntry } from "../../components/drawer/hymns/hymnFolders"
+import { activePopup, hymnFolders, saved } from "../../stores"
 import { newToast } from "../../utils/common"
 import { isHymnFolderImporting, setHymnFolderImporting } from "./hymnImportState"
 import { createHymnBookCategory, registerHymnFolder } from "./powerpointImporter"
 
 // Beacon Worship — Hymns "Load folder".
 //
-// Church hymn books live on disk as .pptx files. Folder load must NOT convert them.
-// Converting 850 decks at once froze the whole app on Windows (CPU + IPC + broadcasting
-// the library to output windows). Load folder only indexes the files (name + path) so the
-// grid appears immediately. The one deck the operator actually goes live is converted
-// then, in hymnConvert.ts.
-//
-// Multiple folders are first-class: each folder gets its own category id (from its path),
-// so two directories both named "Hymns" do not merge, and a second Load folder is not
-// blocked by the first.
+// Index the .pptx files onto the folder row. Do NOT insert them into `shows`.
+// Putting 850 stubs in the global library made every drawer tab crawl, and a click
+// looked for a .show file that did not exist ("Could not find show").
+// Conversion of one deck happens in hymnConvert.ts when that hymn is opened.
 
 export async function importHymnFolder(data: { files: string[]; folderPath: string; categoryName?: string; truncated?: boolean }) {
     const files = data.files || []
@@ -26,7 +20,6 @@ export async function importHymnFolder(data: { files: string[]; folderPath: stri
         return
     }
 
-    // Indexing is a single store write — only block a stacked click on the same tick.
     if (isHymnFolderImporting()) return
     setHymnFolderImporting(true)
 
@@ -38,32 +31,22 @@ export async function importHymnFolder(data: { files: string[]; folderPath: stri
 
         if (folderPath) registerHymnFolder(folderPath, categoryName, categoryId)
 
-        const current = get(shows)
-        const additions: { [id: string]: TrimmedShow } = {}
-        const now = Date.now()
-
+        const seen = new Set<string>()
+        const fileEntries: HymnFileEntry[] = []
         for (const filePath of files) {
             const id = hymnIdFromPath(filePath)
-            if (!id || current[id] || additions[id]) continue
-            additions[id] = {
-                name: fileNameFromPath(filePath),
-                category: categoryId,
-                origin: "powerpoint",
-                timestamps: { created: now, modified: null, used: null },
-                quickAccess: { sourcePath: filePath }
-            }
+            if (!id || seen.has(id)) continue
+            seen.add(id)
+            fileEntries.push({ id, name: fileNameFromPath(filePath), path: filePath })
         }
 
-        const added = Object.keys(additions).length
-        if (added) {
-            shows.update((a) => {
-                Object.assign(a, additions)
-                return a
-            })
-            updateShowsList(get(shows))
-            saved.set(false)
-        }
+        hymnFolders.update((a) => {
+            const id = findFolderByPath(a, folderPath)
+            if (id && a[id]) a[id].files = fileEntries
+            return a
+        })
 
+        saved.set(false)
         activePopup.set(null)
         newToast("main.finished")
     } finally {

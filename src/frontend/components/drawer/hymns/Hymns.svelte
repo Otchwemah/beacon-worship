@@ -2,7 +2,7 @@
     import { Main } from "../../../../types/IPC/Main"
     import type { ShowList } from "../../../../types/Show"
     import { sendMain } from "../../../IPC/main"
-    import { activePopup, activeProfile, activeShow, categories, drawer, focusedArea, hymnFolders, hymnOptions, hymnSearchValue, sortedShowsList, special } from "../../../stores"
+    import { activePopup, activeProfile, activeShow, categories, drawer, focusedArea, hymnFolders, hymnOptions, hymnSearchValue, showsCache, sortedShowsList, special } from "../../../stores"
     import { getAccess } from "../../../utils/profile"
     import T from "../../helpers/T.svelte"
     import Icon from "../../helpers/Icon.svelte"
@@ -15,7 +15,7 @@
     import SelectElem from "../../system/SelectElem.svelte"
     import VirtualList from "../VirtualList.svelte"
     import { filterHymnDecks, getHymnNumber, searchHymnDecks, sortHymnDecks } from "./hymns"
-    import { filterDecksByFolder } from "./hymnFolders"
+    import { decksFromHymnFolders } from "./hymnFolders"
     import HymnCard from "./HymnCard.svelte"
     import HymnsToolbar from "./HymnsToolbar.svelte"
 
@@ -41,27 +41,28 @@
         .filter(([, level]) => level === "none")
         .map(([id]) => id)
 
-    $: allHymnDecks = sortHymnDecks(
-        filterHymnDecks($sortedShowsList, {
-            category: "all",
-            hymnCategoryIds,
-            archivedCategoryIds,
-            hiddenCategoryIds
-        })
-    )
-
-    // left-panel selection: a loaded system folder, a hymn-book category, or everything
     $: isFolderSelection = !!(category && $hymnFolders[category])
-    $: hymnDecks = isFolderSelection
-        ? filterDecksByFolder(allHymnDecks, category, $hymnFolders)
-        : sortHymnDecks(
-              filterHymnDecks($sortedShowsList, {
-                  category,
-                  hymnCategoryIds,
-                  archivedCategoryIds,
-                  hiddenCategoryIds
-              })
-          )
+    $: folderDecks = isFolderSelection
+        ? decksFromHymnFolders($hymnFolders, category)
+        : category === "all" || category === "unlabeled" || !category
+          ? decksFromHymnFolders($hymnFolders)
+          : decksFromHymnFolders($hymnFolders).filter((deck) => deck.category === category)
+    $: importedDecks = filterHymnDecks($sortedShowsList, {
+        category: isFolderSelection ? $hymnFolders[category]?.categoryId || "all" : category,
+        hymnCategoryIds,
+        archivedCategoryIds,
+        hiddenCategoryIds
+    }).filter((deck) => !deck.quickAccess?.sourcePath || $showsCache[deck.id])
+    $: hymnDecks = sortHymnDecks(mergeHymnDecks([...folderDecks, ...importedDecks]))
+
+    function mergeHymnDecks(list: ShowList[]): ShowList[] {
+        const seen = new Set<string>()
+        return list.filter((deck) => {
+            if (!deck?.id || seen.has(deck.id)) return false
+            seen.add(deck.id)
+            return true
+        })
+    }
 
     // don't recompute the whole list while the drawer is closed (same guard as Shows)
     $: drawerIsClosed = $drawer.height <= 40
@@ -123,7 +124,8 @@
     $: rowCount = Math.ceil(filtered.length / columns) || 0
     $: startRow = Math.max(0, Math.floor(scrollTop / Math.max(rowH, 1)) - 2)
     $: endRow = Math.min(rowCount, Math.ceil((scrollTop + viewH) / Math.max(rowH, 1)) + 3)
-    $: visibleDecks = filtered.slice(startRow * columns, endRow * columns)
+    $: rawVisible = filtered.slice(startRow * columns, endRow * columns)
+    $: visibleDecks = rawVisible.length > 48 ? rawVisible.slice(0, 48) : rawVisible
     $: padTop = startRow * rowH
     $: padBottom = Math.max(0, (rowCount - endRow) * rowH)
 </script>
@@ -213,9 +215,11 @@
 
     .grid-wrap {
         background-color: var(--primary-darker);
-        flex: 1;
+        flex: 1 1 auto;
         min-height: 0;
+        max-height: 100%;
         overflow-y: auto;
+        overflow-x: hidden;
         padding: 10px;
         padding-bottom: 60px;
     }

@@ -43,11 +43,11 @@
     let filteredStored: ShowList[] = []
     $: filteredStored = filteredShows =
         active === "all"
-            ? showsSorted.filter((a) => !$categories[a?.category || ""]?.isArchive && profile[a?.category || ""] !== "none")
+            ? showsSorted.filter((a) => !a.quickAccess?.sourcePath && !$categories[a?.category || ""]?.isArchive && profile[a?.category || ""] !== "none")
             : // : active === "number" ? sortByNameAndNumber(showsSorted.filter((a) => a.quickAccess?.number), "asc")
               active === "locked"
-              ? showsSorted.filter((a) => a.locked)
-              : showsSorted.filter((s) => profile[s?.category || ""] !== "none" && (active === s.category || (active === "unlabeled" && (s.category === null || !$categories[s.category]))))
+              ? showsSorted.filter((a) => a.locked && !a.quickAccess?.sourcePath)
+              : showsSorted.filter((s) => !s.quickAccess?.sourcePath && profile[s?.category || ""] !== "none" && (active === s.category || (active === "unlabeled" && (s.category === null || !$categories[s.category]))))
 
     export let firstMatch: null | any = null
 

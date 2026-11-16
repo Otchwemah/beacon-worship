@@ -3,10 +3,11 @@ import { uid } from "uid"
 import type { AiSuggestion } from "../../../types/ai/Ai"
 import type { ShowList } from "../../../types/Show"
 import { keysToID } from "../../components/helpers/array"
+import { decksFromHymnFolders } from "../../components/drawer/hymns/hymnFolders"
 import { getFirstActiveOutput } from "../../components/helpers/output"
 import { sermonMode } from "../../components/drawer/sermon/sermonStore"
 import { startShow } from "../../components/helpers/showActions"
-import { activeDrawerTab, activeProfile, aiSuggestions, categories, drawerTabsData, shows, special } from "../../stores"
+import { activeDrawerTab, activeProfile, aiSuggestions, categories, drawerTabsData, hymnFolders, shows, special } from "../../stores"
 import { newToast } from "../../utils/common"
 import { translateText } from "../../utils/language"
 import { getAccess } from "../../utils/profile"
@@ -39,7 +40,10 @@ export async function handleHymnCommand(command: HymnCommand): Promise<HymnComma
         .map(([id]) => id)
     const hymnCategoryIds = get(special).hymnCategoryIds || []
 
-    const decks: ShowList[] = getLocalHymnDecks(keysToID(get(shows)), hymnCategoryIds, archivedCategoryIds, hiddenCategoryIds)
+    const libraryDecks: ShowList[] = getLocalHymnDecks(keysToID(get(shows)), hymnCategoryIds, archivedCategoryIds, hiddenCategoryIds)
+    const folderDecks = decksFromHymnFolders(get(hymnFolders))
+    const seen = new Set(libraryDecks.map((d) => d.id))
+    const decks: ShowList[] = libraryDecks.concat(folderDecks.filter((d) => !seen.has(d.id)))
     const activeCategory = get(drawerTabsData).hymns?.activeSubTab || null
     const liveShowId = getFirstActiveOutput()?.out?.slide?.id || null
 

@@ -1,25 +1,33 @@
 import { get } from "svelte/store"
 import { Main } from "../../../types/IPC/Main"
 import { requestMain } from "../../IPC/main"
-import { saved, shows, showsCache } from "../../stores"
-import { isHymnFileStub } from "../../components/drawer/hymns/hymnFolders"
+import { hymnFolders, saved, shows, showsCache } from "../../stores"
+import { findHymnFile, isHymnFileStub } from "../../components/drawer/hymns/hymnFolders"
 import { powerpointToTempShows } from "./powerpointImporter"
 
 const PPT_TIMEOUT_MS = 180000
 const inFlight = new Map<string, Promise<boolean>>()
 
-// Convert ONE hymn .pptx, the moment the operator goes live. Folder load only indexed it.
+// Convert ONE hymn .pptx when the operator opens it. Folder load only indexed the path.
 export async function ensureHymnConverted(showId: string): Promise<boolean> {
     const cached = get(showsCache)[showId]
     if (cached?.layouts && cached.settings?.activeLayout && cached.layouts[cached.settings.activeLayout]?.slides?.length) return true
 
     const trimmed = get(shows)[showId]
-    if (!isHymnFileStub(trimmed)) return !!cached
+    const file = findHymnFile(get(hymnFolders), showId)
+    const sourcePath = trimmed?.quickAccess?.sourcePath || file?.path
+    if (!sourcePath) return !!cached
+    if (!isHymnFileStub(trimmed) && !file) return !!cached
 
     const pending = inFlight.get(showId)
     if (pending) return pending
 
-    const work = convertOne(showId, trimmed.quickAccess.sourcePath, trimmed)
+    const work = convertOne(showId, sourcePath, {
+        name: trimmed?.name || file?.name,
+        category: trimmed?.category || file?.categoryId || "",
+        quickAccess: { ...(trimmed?.quickAccess || {}), sourcePath },
+        thumbnail: trimmed?.thumbnail
+    })
     inFlight.set(showId, work)
     try {
         return await work
@@ -47,12 +55,18 @@ async function convertOne(showId: string, filePath: string, trimmed: { name?: st
             return a
         })
 
-        if (show.thumbnail && show.thumbnail !== trimmed.thumbnail) {
-            shows.update((a) => {
-                if (a[showId]) a[showId].thumbnail = show.thumbnail
-                return a
-            })
-        }
+        // Persist only this one converted hymn in the library — never the whole folder.
+        shows.update((a) => {
+            a[showId] = {
+                name: show.name || "",
+                category: show.category,
+                origin: "powerpoint",
+                timestamps: show.timestamps,
+                quickAccess: show.quickAccess || {},
+                ...(show.thumbnail ? { thumbnail: show.thumbnail } : {})
+            }
+            return a
+        })
 
         saved.set(false)
         return true
