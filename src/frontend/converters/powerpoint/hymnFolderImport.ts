@@ -30,6 +30,7 @@ export async function importHymnFolder(data: { files: string[]; folderPath: stri
         const existingFolderId = findFolderByPath(get(hymnFolders), folderPath)
         const previous = existingFolderId ? get(hymnFolders)[existingFolderId]?.files || [] : []
         const previousThumbs = new Map(previous.map((file) => [file.id, file.thumbnail]))
+        const previousPreviews = new Map(previous.map((file) => [file.id, file.preview]))
         const categoryId = existingFolderId ? getFolderCategoryId(get(hymnFolders)[existingFolderId]) || createHymnBookCategory(categoryName, folderPath) : createHymnBookCategory(categoryName, folderPath)
 
         if (folderPath) registerHymnFolder(folderPath, categoryName, categoryId)
@@ -40,7 +41,8 @@ export async function importHymnFolder(data: { files: string[]; folderPath: stri
             if (!id || seen.has(id)) continue
             seen.add(id)
             const thumbnail = previousThumbs.get(id)
-            fileEntries.push({ id, name: fileNameFromPath(filePath), path: filePath, ...(thumbnail ? { thumbnail } : {}) })
+            const preview = previousPreviews.get(id)
+            fileEntries.push({ id, name: fileNameFromPath(filePath), path: filePath, ...(thumbnail ? { thumbnail } : {}), ...(preview ? { preview } : {}) })
         }
 
         hymnFolders.update((a) => {

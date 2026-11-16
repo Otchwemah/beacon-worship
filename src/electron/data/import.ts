@@ -97,9 +97,9 @@ const specialImports = {
     }
 }
 
-export async function convertPowerpointFile(filePath: string): Promise<{ name: string; content: any } | null> {
+export async function convertPowerpointFile(filePath: string, firstSlideOnly = false): Promise<{ name: string; content: any } | null> {
     try {
-        const json = await pptToShow(filePath)
+        const json = await pptToShow(filePath, { firstSlideOnly })
         if (!json) return null
         return { name: getFileName(filePath), content: json }
     } catch (err) {

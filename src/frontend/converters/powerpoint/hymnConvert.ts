@@ -2,7 +2,7 @@ import { get } from "svelte/store"
 import { Main } from "../../../types/IPC/Main"
 import { requestMain } from "../../IPC/main"
 import { hymnFolders, saved, shows, showsCache, special } from "../../stores"
-import { findHymnFile, isHymnFileStub, setHymnFileThumbnails } from "../../components/drawer/hymns/hymnFolders"
+import { findHymnFile, isHymnFileStub, setHymnFilePreviews, setHymnFileThumbnails } from "../../components/drawer/hymns/hymnFolders"
 import { getSlidePreview } from "../../components/inputs/showThumbnail"
 import { powerpointToTempShows } from "./powerpointImporter"
 
@@ -76,6 +76,13 @@ async function convertOne(showId: string, filePath: string, trimmed: { name?: st
 
         if (thumbnail) {
             hymnFolders.update((folders) => setHymnFileThumbnails(folders, { [showId]: thumbnail }))
+        }
+        if (preview) {
+            hymnFolders.update((folders) => {
+                const existing = findHymnFile(folders, showId)
+                if (existing?.preview) return folders
+                return setHymnFilePreviews(folders, { [showId]: preview })
+            })
         }
 
         saved.set(false)

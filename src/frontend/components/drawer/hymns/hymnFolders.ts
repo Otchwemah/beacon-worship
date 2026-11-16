@@ -60,7 +60,7 @@ export function isHymnFileStub(show: { quickAccess?: any } | null | undefined): 
     return !!show?.quickAccess?.sourcePath
 }
 
-export type HymnFileEntry = { id: string; name: string; path: string; thumbnail?: string }
+export type HymnFileEntry = { id: string; name: string; path: string; thumbnail?: string; preview?: any }
 export type HymnFolderEntry = { id: string; name: string; path: string; categoryId: string; icon: string; files?: HymnFileEntry[] }
 
 export function createFolderEntry(id: string, name: string, path: string, categoryId: string, files: HymnFileEntry[] = []): HymnFolderEntry {
@@ -74,7 +74,7 @@ export function fileToShowList(file: HymnFileEntry, categoryId: string): ShowLis
         category: categoryId || null,
         origin: "powerpoint",
         timestamps: { created: 0, modified: null, used: null },
-        ...(file.thumbnail ? { thumbnail: file.thumbnail } : {}),
+        ...(file.preview ? { preview: file.preview } : {}),
         quickAccess: { sourcePath: file.path }
     }
 }
@@ -93,6 +93,29 @@ export function setHymnFileThumbnails(folders: Categories, thumbs: Record<string
             if (!thumbnail || file.thumbnail === thumbnail) return file
             folderChanged = true
             return { ...file, thumbnail }
+        })
+        if (folderChanged) {
+            changed = true
+            next[id] = { ...folder, files: newFiles }
+        }
+    })
+    return changed ? next : folders
+}
+
+export function setHymnFilePreviews(folders: Categories, previews: Record<string, any>): Categories {
+    if (!previews || !Object.keys(previews).length) return folders
+
+    let changed = false
+    const next: Categories = { ...folders }
+    Object.entries(folders || {}).forEach(([id, folder]) => {
+        const files = folder?.files
+        if (!files?.length) return
+        let folderChanged = false
+        const newFiles = files.map((file) => {
+            const preview = previews[file.id]
+            if (!preview || file.preview === preview) return file
+            folderChanged = true
+            return { ...file, preview }
         })
         if (folderChanged) {
             changed = true

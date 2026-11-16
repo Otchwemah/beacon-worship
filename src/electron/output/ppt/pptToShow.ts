@@ -4,14 +4,14 @@ import { toApp } from "../.."
 import { MAIN } from "../../../types/Channels"
 import { decompressZipStream } from "../../data/zip"
 import { createFolder, getDataFolderPath, sanitizeFileName } from "../../utils/files"
-import { getPowerpointEntryFileName, isPowerpointThumbnailEntry } from "./pptEntries"
+import { getPowerpointEntryFileName, includeFirstSlideZipEntry, isPowerpointThumbnailEntry } from "./pptEntries"
 import { slimPowerpointJson } from "./slimPowerpointJson"
 
 // Extract .pptx contents (zip) and convert XML files to JSON
 // Media and fonts are streamed directly to disk to avoid OOM with large embedded videos.
-export async function pptToShow(filePath: string) {
+export async function pptToShow(filePath: string, options: { firstSlideOnly?: boolean } = {}) {
     try {
-        console.info("Starting PPT importing...")
+        if (!options.firstSlideOnly) console.info("Starting PPT importing...")
         const rawName = path.basename(filePath, path.extname(filePath))
         const fileName = sanitizeFileName(rawName)
         const importsFolder = getDataFolderPath("imports", "PowerPoint")
@@ -23,7 +23,8 @@ export async function pptToShow(filePath: string) {
                 const outputName = getPowerpointEntryFileName(fileName)
                 if (!outputName) return undefined
                 return path.join(contentFolder, outputName)
-            }
+            },
+            includeEntry: options.firstSlideOnly ? includeFirstSlideZipEntry : undefined
         })
 
         const json: any = {}

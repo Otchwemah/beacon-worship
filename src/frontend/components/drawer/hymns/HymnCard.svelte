@@ -55,8 +55,10 @@
         loadShows([id])
     }
 
-    $: livePreview = getSlidePreview($showsCache[id])
-    $: thumbnailPath = livePreview ? "" : storedThumbnail
+    // Folder hymns must never use PowerPoint's blank jpeg — that is what made the tiles white.
+    // The stored first-slide miniature (text + shapes) is the thumbnail.
+    $: livePreview = show.preview || getSlidePreview($showsCache[id])
+    $: thumbnailPath = livePreview || isHymnFileStub($shows[id] || show) ? "" : storedThumbnail
     $: isLive = findMatchingOut(id, $outputs) !== null
     $: isActive = $activeShow?.id === id
 

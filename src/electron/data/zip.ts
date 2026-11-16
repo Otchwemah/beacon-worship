@@ -81,6 +81,8 @@ export function compressToZip(entries: { name: string; content?: Buffer | string
 export interface DecompressStreamOptions {
     // Return output path to write to disk, or undefined to buffer in memory
     getOutputPath?: (fileName: string) => string | undefined
+    // Return false to skip the entry without reading its body
+    includeEntry?: (fileName: string) => boolean
 }
 
 function getZipErrorAlert(file: string, error: unknown) {
@@ -149,6 +151,11 @@ export async function decompressZipStream(file: string, asBuffer = false, option
 
                 // Skip directories
                 if (/\/$/.test(fileName)) {
+                    zipfile.readEntry()
+                    return
+                }
+
+                if (options?.includeEntry && !options.includeEntry(fileName)) {
                     zipfile.readEntry()
                     return
                 }

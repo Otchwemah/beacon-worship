@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest"
-import { DECK_THUMBNAIL_BASENAME, getPowerpointEntryFileName, isPowerpointDiskEntry, isPowerpointMediaEntry, isPowerpointThumbnailEntry, normalizeEntryName } from "./pptEntries"
+import { DECK_THUMBNAIL_BASENAME, getPowerpointEntryFileName, includeFirstSlideZipEntry, isPowerpointDiskEntry, isPowerpointMediaEntry, isPowerpointThumbnailEntry, normalizeEntryName } from "./pptEntries"
 
 describe("normalizeEntryName", () => {
     it("converts backslashes and strips leading ./ and slashes", () => {
@@ -71,5 +71,26 @@ describe("getPowerpointEntryFileName", () => {
         expect(getPowerpointEntryFileName("docProps/thumbnail.emf")).toBeNull()
         expect(getPowerpointEntryFileName("ppt/media/")).toBeNull()
         expect(getPowerpointEntryFileName("ppt/media/../secret")).toBe("secret")
+    })
+})
+
+describe("includeFirstSlideZipEntry", () => {
+    it("keeps slide 1, its rels, layouts, masters and theme", () => {
+        expect(includeFirstSlideZipEntry("ppt/slides/slide1.xml")).toBe(true)
+        expect(includeFirstSlideZipEntry("ppt/slides/_rels/slide1.xml.rels")).toBe(true)
+        expect(includeFirstSlideZipEntry("ppt/presentation.xml")).toBe(true)
+        expect(includeFirstSlideZipEntry("ppt/slideLayouts/slideLayout1.xml")).toBe(true)
+        expect(includeFirstSlideZipEntry("ppt/slideMasters/slideMaster1.xml")).toBe(true)
+        expect(includeFirstSlideZipEntry("ppt/theme/theme1.xml")).toBe(true)
+        expect(includeFirstSlideZipEntry("[Content_Types].xml")).toBe(true)
+    })
+
+    it("keeps raster media and drops video/fonts/other slides", () => {
+        expect(includeFirstSlideZipEntry("ppt/media/image1.jpeg")).toBe(true)
+        expect(includeFirstSlideZipEntry("ppt/media/video1.mp4")).toBe(false)
+        expect(includeFirstSlideZipEntry("ppt/fonts/font1.fntdata")).toBe(false)
+        expect(includeFirstSlideZipEntry("ppt/slides/slide2.xml")).toBe(false)
+        expect(includeFirstSlideZipEntry("ppt/slides/_rels/slide9.xml.rels")).toBe(false)
+        expect(includeFirstSlideZipEntry("ppt/notesSlides/notesSlide1.xml")).toBe(false)
     })
 })

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import type { ShowList } from "../../../../types/Show"
-import { createFolderEntry, decksFromHymnFolders, fileNameFromPath, fileToShowList, filterDecksByFolder, findFolderByPath, findHymnFile, getFolderCategoryId, getFolderRows, hymnCategoryIdFromFolder, hymnIdFromPath, isHymnFileStub, normaliseFolderPath, pathHash, removeFolder, setHymnFileThumbnails } from "./hymnFolders"
+import { createFolderEntry, decksFromHymnFolders, fileNameFromPath, fileToShowList, filterDecksByFolder, findFolderByPath, findHymnFile, getFolderCategoryId, getFolderRows, hymnCategoryIdFromFolder, hymnIdFromPath, isHymnFileStub, normaliseFolderPath, pathHash, removeFolder, setHymnFilePreviews, setHymnFileThumbnails } from "./hymnFolders"
 
 const deck = (id: string, category: string | null): ShowList => ({ id, name: id, category, timestamps: { created: 0, modified: null, used: null } })
 
@@ -88,10 +88,12 @@ describe("decksFromHymnFolders / findHymnFile", () => {
         expect(findHymnFile(folders, "missing")).toBeNull()
     })
 
-    it("carries a stored first-slide thumbnail onto the grid tile", () => {
-        const deck = fileToShowList({ id: "hymn_1", name: "PHB_001", path: "/h/1.pptx", thumbnail: "/cache/hymn.jpg" }, "phb")
-        expect(deck.thumbnail).toBe("/cache/hymn.jpg")
+    it("carries a stored first-slide miniature onto the grid tile", () => {
+        const preview = { slideId: "preview", backgroundImage: "", backgroundColor: "#fff", mediaSrc: "", text: "Great is Thy faithfulness", items: [], width: 1920, height: 1080 }
+        const deck = fileToShowList({ id: "hymn_1", name: "PHB_001", path: "/h/1.pptx", preview }, "phb")
+        expect(deck.preview).toEqual(preview)
         expect(deck.quickAccess?.sourcePath).toBe("/h/1.pptx")
+        expect(deck.thumbnail).toBeUndefined()
     })
 })
 
@@ -111,6 +113,20 @@ describe("setHymnFileThumbnails", () => {
         const folders = { f1: { name: "PHB", files: [{ id: "a", name: "A", path: "/h/a.pptx", thumbnail: "/cache/a.jpg" }] } }
         expect(setHymnFileThumbnails(folders, { a: "/cache/a.jpg" })).toBe(folders)
         expect(setHymnFileThumbnails(folders, {})).toBe(folders)
+    })
+})
+
+describe("setHymnFilePreviews", () => {
+    it("writes first-slide miniatures without mutating other files", () => {
+        const folders = {
+            f1: { name: "PHB", path: "/h", categoryId: "phb", files: [{ id: "a", name: "A", path: "/h/a.pptx" }, { id: "b", name: "B", path: "/h/b.pptx" }] }
+        }
+        const preview = { text: "verse 1" }
+        const next = setHymnFilePreviews(folders, { a: preview })
+        expect(next).not.toBe(folders)
+        expect(next.f1.files?.[0].preview).toEqual(preview)
+        expect(next.f1.files?.[1].preview).toBeUndefined()
+        expect(folders.f1.files?.[0].preview).toBeUndefined()
     })
 })
 

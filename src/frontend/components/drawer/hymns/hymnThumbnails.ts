@@ -2,14 +2,15 @@ import { get } from "svelte/store"
 import { Main } from "../../../../types/IPC/Main"
 import { requestMain } from "../../../IPC/main"
 import { hymnFolders, saved } from "../../../stores"
-import { setHymnFileThumbnails } from "./hymnFolders"
+import { firstSlidePreviewFromPpt } from "../../../converters/powerpoint/hymnFirstSlide"
+import { setHymnFilePreviews } from "./hymnFolders"
 
-// After Load folder the grid already has a tile per hymn. This queue then copies the
-// first-slide picture out of each .pptx, one file at a time, so 850 decks do not freeze
-// the app. Full conversion still waits until the operator opens that hymn.
+// After Load folder the grid already has a tile per hymn. This queue then converts
+// SLIDE 1 only of each .pptx and stores a miniature (text + shapes + background).
+// Full conversion still waits until the operator opens that hymn.
 
 const queue: { id: string; path: string }[] = []
-const pending = new Map<string, string>()
+const pending = new Map<string, any>()
 const queued = new Set<string>()
 const finished = new Set<string>()
 let pumping = false
@@ -19,7 +20,7 @@ export function enqueueMissingHymnThumbnails(folders = get(hymnFolders)) {
     Object.values(folders || {}).forEach((folder) => {
         ;(folder?.files || []).forEach((file) => {
             if (!file?.id || !file.path) return
-            if (file.thumbnail || queued.has(file.id) || finished.has(file.id)) return
+            if (file.preview || queued.has(file.id) || finished.has(file.id)) return
             queued.add(file.id)
             queue.push({ id: file.id, path: file.path })
         })
@@ -35,15 +36,16 @@ async function pump() {
             const next = queue.shift()
             if (!next) break
             try {
-                const thumbnail = await requestMain(Main.PPT_FIRST_SLIDE_THUMB, { filePath: next.path }, undefined, 20000)
-                if (thumbnail) pending.set(next.id, thumbnail)
+                const payload = await requestMain(Main.PPT_TO_SHOW, { filePath: next.path, firstSlideOnly: true }, undefined, 30000)
+                const preview = payload?.content ? firstSlidePreviewFromPpt(payload.content) : null
+                if (preview) pending.set(next.id, preview)
             } catch (err) {
-                console.error("Hymn thumbnail failed for", next.path, err)
+                console.error("Hymn first-slide preview failed for", next.path, err)
             } finally {
                 queued.delete(next.id)
                 finished.add(next.id)
             }
-            if (pending.size >= 12) flush()
+            if (pending.size >= 8) flush()
             await yieldUi()
         }
         flush()
@@ -55,12 +57,12 @@ async function pump() {
 
 function flush() {
     if (!pending.size) return
-    const thumbs: Record<string, string> = {}
-    pending.forEach((path, id) => {
-        thumbs[id] = path
+    const previews: Record<string, any> = {}
+    pending.forEach((preview, id) => {
+        previews[id] = preview
     })
     pending.clear()
-    hymnFolders.update((folders) => setHymnFileThumbnails(folders, thumbs))
+    hymnFolders.update((folders) => setHymnFilePreviews(folders, previews))
     saved.set(false)
 }
 
@@ -70,6 +72,6 @@ function yieldUi() {
         flushTimer = setTimeout(() => {
             flushTimer = null
             resolve()
-        }, 30)
+        }, 40)
     })
 }

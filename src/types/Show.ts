@@ -90,6 +90,8 @@ export interface ShowList extends TrimmedShow {
     id: string
     match?: number
     originalMatch?: number
+    // Beacon Worship: first-slide miniature for Hymns tiles (not a blank PPT preview jpeg)
+    preview?: any
 }
 
 export interface Slide {
