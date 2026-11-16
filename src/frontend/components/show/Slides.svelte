@@ -1,6 +1,7 @@
 <script lang="ts">
     import { onDestroy, onMount } from "svelte"
-    import { activeEdit, activeFocus, activePage, activePopup, alertMessage, cachedShowsData, categories, focusMode, groups, lessonsLoaded, notFound, outLocked, outputs, outputSlideCache, showsCache, slidesOptions, special, templates } from "../../stores"
+    import { activeEdit, activeFocus, activePage, activePopup, alertMessage, cachedShowsData, categories, focusMode, groups, hymnFolders, lessonsLoaded, notFound, outLocked, outputs, outputSlideCache, showsCache, slidesOptions, special, templates } from "../../stores"
+    import { findHymnFile } from "../drawer/hymns/hymnFolders"
     import { hasNewerUpdate, wait } from "../../utils/common"
     import { getAccess } from "../../utils/profile"
     import { videoExtensions } from "../../values/extensions"
@@ -484,13 +485,15 @@
     let loading = false
     $: if (showId) startLoading()
     $: if ($notFound.show?.includes(showId)) loading = false
+    $: if ($showsCache[showId]) loading = false
     let loadingTimeout: NodeJS.Timeout | null = null
     function startLoading() {
         loading = true
         if (loadingTimeout) clearTimeout(loadingTimeout)
+        const hymnWait = !!findHymnFile($hymnFolders, showId)
         loadingTimeout = setTimeout(() => {
             loading = false
-        }, 8000)
+        }, hymnWait ? 180000 : 8000)
     }
 
     $: mode = isLessons ? "grid" : $slidesOptions.mode

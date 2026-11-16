@@ -16,6 +16,7 @@
     import VirtualList from "../VirtualList.svelte"
     import { filterHymnDecks, getHymnNumber, searchHymnDecks, sortHymnDecks } from "./hymns"
     import { decksFromHymnFolders } from "./hymnFolders"
+    import { enqueueMissingHymnThumbnails } from "./hymnThumbnails"
     import HymnCard from "./HymnCard.svelte"
     import HymnsToolbar from "./HymnsToolbar.svelte"
 
@@ -116,6 +117,7 @@
         wrapW = gridScroller.clientWidth
     }
 
+    $: if (!drawerIsClosed) enqueueMissingHymnThumbnails($hymnFolders)
     $: if (gridScroller && mode === "grid") onGridScroll()
     $: innerW = Math.max(0, wrapW - GRID_PAD * 2)
     $: tileW = columns > 0 && innerW > 0 ? (innerW - GRID_GAP * (columns - 1)) / columns : 160

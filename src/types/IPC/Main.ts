@@ -60,6 +60,7 @@ export enum Main {
     IMPORT_FILES = "IMPORT_FILES",
     IMPORT_FOLDER = "IMPORT_FOLDER",
     PPT_TO_SHOW = "PPT_TO_SHOW",
+    PPT_FIRST_SLIDE_THUMB = "PPT_FIRST_SLIDE_THUMB",
     BIBLE = "BIBLE",
     SHOW = "SHOW",
     SAVE = "SAVE",
@@ -206,6 +207,7 @@ export interface MainSendPayloads {
     // Beacon Worship: import every matching deck inside a chosen folder (Hymns "Load folder").
     [Main.IMPORT_FOLDER]: { channel: string; extensions: string[]; useFolderNameAsCategory?: boolean; recursive?: boolean }
     [Main.PPT_TO_SHOW]: { filePath: string }
+    [Main.PPT_FIRST_SLIDE_THUMB]: { filePath: string }
     [Main.BIBLE]: { id: string; name: string }
     [Main.SHOW]: { id: string; name: string }
     [Main.SAVE]: SaveData
@@ -348,6 +350,7 @@ export interface MainReturnPayloads {
     [Main.BIBLE]: { id: string; error?: string; content?: [string, Bible] }
     [Main.SHOW]: { id: string; error?: string; content?: [string, Show] }
     [Main.PPT_TO_SHOW]: Promise<{ name: string; content: any } | null>
+    [Main.PPT_FIRST_SLIDE_THUMB]: Promise<string | null>
     ///
     [Main.GET_DISPLAYS]: Display[]
     [Main.GET_PATHS]: MainFilePaths

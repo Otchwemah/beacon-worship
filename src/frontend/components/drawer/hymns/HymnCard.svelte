@@ -1,11 +1,12 @@
 <script lang="ts">
     import { onMount } from "svelte"
     import type { ShowList } from "../../../../types/Show"
-    import { activePage, activeShow, outputs, shows, showsCache, special } from "../../../stores"
+    import { activePage, activeShow, outputs, shows, showsCache } from "../../../stores"
     import { encodeFilePath } from "../../helpers/media"
     import { findMatchingOut } from "../../helpers/output"
     import { isHymnFileStub } from "./hymnFolders"
     import { loadShows } from "../../helpers/setShow"
+    import { ensureHymnConverted } from "../../../converters/powerpoint/hymnConvert"
     import Icon from "../../helpers/Icon.svelte"
     import SlidePreviewBox from "../../inputs/SlidePreviewBox.svelte"
     import { getSlidePreview } from "../../inputs/showThumbnail"
@@ -14,18 +15,14 @@
 
     // Beacon Worship — a hymn tile for the grid view.
     //
-    // Thumbnail order matches ShowButton exactly: stored deck preview → live first-slide
-    // approximation → book icon. The live fallback needs the full show, so it is only
-    // requested once the tile scrolls into view; loading 300+ decks up front would stall
-    // the drawer. Going live calls the same presentDeck() the list rows use.
+    // Thumbnail is the first slide: a picture extracted from the .pptx (no convert), or
+    // the live miniature once that one deck is in cache. Do not convert on scroll.
 
     export let show: ShowList
     export let selected = false
 
     $: id = show.id
     $: number = getHymnNumber(show)
-    // Beacon Worship: the thumbnail is ALWAYS the first slide. PowerPoint's embedded
-    // docProps/thumbnail.* is often a blank white frame, so it is only a last resort.
     $: storedThumbnail = show?.thumbnail || $shows[id]?.thumbnail || ""
 
     let elem: HTMLButtonElement
@@ -58,16 +55,16 @@
         loadShows([id])
     }
 
-    $: hymnBg = $special.hymnBackgroundImage || ""
-    $: livePreview = hymnBg ? null : getSlidePreview($showsCache[id])
-    $: thumbnailPath = livePreview || hymnBg ? "" : storedThumbnail
+    $: livePreview = getSlidePreview($showsCache[id])
+    $: thumbnailPath = livePreview ? "" : storedThumbnail
     $: isLive = findMatchingOut(id, $outputs) !== null
     $: isActive = $activeShow?.id === id
 
     function select() {
         activeShow.set({ id, name: show.name, type: "show" })
         if ($activePage !== "edit") activePage.set("show")
-        // the live fallback needs the deck even if the tile was never scrolled into view
+        // Convert this one hymn so the centre panel does not say "Could not find show".
+        void ensureHymnConverted(id)
         requestPreview()
     }
 
@@ -104,16 +101,12 @@
 </script>
 
 <button bind:this={elem} class="hymn-card" class:active={isActive} class:live={isLive} class:selected on:click={click} on:dblclick={dblclick} on:keydown={keydown} title={show.name} data-hymn-id={id}>
-    <div
-        class="thumb"
-        class:has-bg={!!hymnBg}
-        style={hymnBg ? `background-image: url(\"${encodeFilePath(hymnBg)}\")` : ""}
-    >
+    <div class="thumb">
         {#if livePreview}
             <SlidePreviewBox preview={livePreview} />
         {:else if thumbnailPath}
             <img src={encodeFilePath(thumbnailPath)} alt="" loading="lazy" draggable="false" />
-        {:else if !hymnBg}
+        {:else}
             <div class="placeholder">
                 {#if number !== null}
                     <span class="hero-num">{number}</span>
@@ -181,14 +174,6 @@
         flex-shrink: 0;
     }
 
-    .thumb.has-bg::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        background: linear-gradient(180deg, rgb(0 0 0 / 0.05), rgb(0 0 0 / 0.45));
-        pointer-events: none;
-    }
-
     .hero-num {
         font-size: 1.8em;
         font-weight: 800;
@@ -201,7 +186,7 @@
     .thumb img {
         width: 100%;
         height: 100%;
-        object-fit: contain;
+        object-fit: cover;
         display: block;
     }
 

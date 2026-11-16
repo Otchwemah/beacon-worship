@@ -60,7 +60,7 @@ export function isHymnFileStub(show: { quickAccess?: any } | null | undefined): 
     return !!show?.quickAccess?.sourcePath
 }
 
-export type HymnFileEntry = { id: string; name: string; path: string }
+export type HymnFileEntry = { id: string; name: string; path: string; thumbnail?: string }
 export type HymnFolderEntry = { id: string; name: string; path: string; categoryId: string; icon: string; files?: HymnFileEntry[] }
 
 export function createFolderEntry(id: string, name: string, path: string, categoryId: string, files: HymnFileEntry[] = []): HymnFolderEntry {
@@ -74,8 +74,32 @@ export function fileToShowList(file: HymnFileEntry, categoryId: string): ShowLis
         category: categoryId || null,
         origin: "powerpoint",
         timestamps: { created: 0, modified: null, used: null },
+        ...(file.thumbnail ? { thumbnail: file.thumbnail } : {}),
         quickAccess: { sourcePath: file.path }
     }
+}
+
+export function setHymnFileThumbnails(folders: Categories, thumbs: Record<string, string>): Categories {
+    if (!thumbs || !Object.keys(thumbs).length) return folders
+
+    let changed = false
+    const next: Categories = { ...folders }
+    Object.entries(folders || {}).forEach(([id, folder]) => {
+        const files = folder?.files
+        if (!files?.length) return
+        let folderChanged = false
+        const newFiles = files.map((file) => {
+            const thumbnail = thumbs[file.id]
+            if (!thumbnail || file.thumbnail === thumbnail) return file
+            folderChanged = true
+            return { ...file, thumbnail }
+        })
+        if (folderChanged) {
+            changed = true
+            next[id] = { ...folder, files: newFiles }
+        }
+    })
+    return changed ? next : folders
 }
 
 export function decksFromHymnFolders(folders: Categories, folderId?: string): ShowList[] {

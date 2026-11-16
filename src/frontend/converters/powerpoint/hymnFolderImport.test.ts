@@ -47,6 +47,7 @@ vi.mock("./powerpointImporter", () => ({
     registerHymnFolder: (...args: any[]) => h.registerHymnFolder(...args)
 }))
 vi.mock("../../utils/common", () => ({ newToast: (...args: any[]) => h.newToast(...args) }))
+vi.mock("../../components/drawer/hymns/hymnThumbnails", () => ({ enqueueMissingHymnThumbnails: vi.fn() }))
 
 import { importHymnFolder } from "./hymnFolderImport"
 import { hymnIdFromPath } from "../../components/drawer/hymns/hymnFolders"

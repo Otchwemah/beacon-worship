@@ -1,8 +1,9 @@
 import { get } from "svelte/store"
 import { Main } from "../../../types/IPC/Main"
 import { requestMain } from "../../IPC/main"
-import { hymnFolders, saved, shows, showsCache } from "../../stores"
-import { findHymnFile, isHymnFileStub } from "../../components/drawer/hymns/hymnFolders"
+import { hymnFolders, saved, shows, showsCache, special } from "../../stores"
+import { findHymnFile, isHymnFileStub, setHymnFileThumbnails } from "../../components/drawer/hymns/hymnFolders"
+import { getSlidePreview } from "../../components/inputs/showThumbnail"
 import { powerpointToTempShows } from "./powerpointImporter"
 
 const PPT_TIMEOUT_MS = 180000
@@ -26,7 +27,7 @@ export async function ensureHymnConverted(showId: string): Promise<boolean> {
         name: trimmed?.name || file?.name,
         category: trimmed?.category || file?.categoryId || "",
         quickAccess: { ...(trimmed?.quickAccess || {}), sourcePath },
-        thumbnail: trimmed?.thumbnail
+        thumbnail: file?.thumbnail || trimmed?.thumbnail
     })
     inFlight.set(showId, work)
     try {
@@ -48,7 +49,12 @@ async function convertOne(showId: string, filePath: string, trimmed: { name?: st
         show.name = trimmed.name || show.name
         show.category = trimmed.category || show.category
         show.quickAccess = { ...(show.quickAccess || {}), ...(trimmed.quickAccess || {}) }
-        if (trimmed.thumbnail && !show.thumbnail) show.thumbnail = trimmed.thumbnail
+        const preview = getSlidePreview(show)
+        const firstSlideImage = preview?.backgroundImage || preview?.mediaSrc || preview?.items?.find((item) => item.isImage && item.src)?.src || ""
+        const hymnBg = get(special).hymnBackgroundImage || ""
+        const fromSlide = firstSlideImage && firstSlideImage !== hymnBg ? firstSlideImage : ""
+        const thumbnail = trimmed.thumbnail || fromSlide || ""
+        if (thumbnail) show.thumbnail = thumbnail
 
         showsCache.update((a) => {
             a[showId] = show
@@ -67,6 +73,10 @@ async function convertOne(showId: string, filePath: string, trimmed: { name?: st
             }
             return a
         })
+
+        if (thumbnail) {
+            hymnFolders.update((folders) => setHymnFileThumbnails(folders, { [showId]: thumbnail }))
+        }
 
         saved.set(false)
         return true

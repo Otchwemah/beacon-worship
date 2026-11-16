@@ -3,6 +3,7 @@ import { fileNameFromPath, findFolderByPath, getFolderCategoryId, hymnIdFromPath
 import type { HymnFileEntry } from "../../components/drawer/hymns/hymnFolders"
 import { activePopup, hymnFolders, saved } from "../../stores"
 import { newToast } from "../../utils/common"
+import { enqueueMissingHymnThumbnails } from "../../components/drawer/hymns/hymnThumbnails"
 import { isHymnFolderImporting, setHymnFolderImporting } from "./hymnImportState"
 import { createHymnBookCategory, registerHymnFolder } from "./powerpointImporter"
 
@@ -27,17 +28,19 @@ export async function importHymnFolder(data: { files: string[]; folderPath: stri
         const folderPath = data.folderPath || ""
         const categoryName = data.categoryName || "Hymns"
         const existingFolderId = findFolderByPath(get(hymnFolders), folderPath)
+        const previous = existingFolderId ? get(hymnFolders)[existingFolderId]?.files || [] : []
+        const previousThumbs = new Map(previous.map((file) => [file.id, file.thumbnail]))
         const categoryId = existingFolderId ? getFolderCategoryId(get(hymnFolders)[existingFolderId]) || createHymnBookCategory(categoryName, folderPath) : createHymnBookCategory(categoryName, folderPath)
 
         if (folderPath) registerHymnFolder(folderPath, categoryName, categoryId)
-
         const seen = new Set<string>()
         const fileEntries: HymnFileEntry[] = []
         for (const filePath of files) {
             const id = hymnIdFromPath(filePath)
             if (!id || seen.has(id)) continue
             seen.add(id)
-            fileEntries.push({ id, name: fileNameFromPath(filePath), path: filePath })
+            const thumbnail = previousThumbs.get(id)
+            fileEntries.push({ id, name: fileNameFromPath(filePath), path: filePath, ...(thumbnail ? { thumbnail } : {}) })
         }
 
         hymnFolders.update((a) => {
@@ -48,6 +51,7 @@ export async function importHymnFolder(data: { files: string[]; folderPath: stri
 
         saved.set(false)
         activePopup.set(null)
+        enqueueMissingHymnThumbnails(get(hymnFolders))
         newToast("main.finished")
     } finally {
         setHymnFolderImporting(false)

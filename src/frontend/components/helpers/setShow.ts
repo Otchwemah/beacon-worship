@@ -248,7 +248,16 @@ export async function loadShows(s: string[], deleting = false) {
 
     const promises: Promise<void>[] = []
     s.forEach((id) => {
-        if (!get(shows)[id]) {
+        const hymnFile = findHymnFile(get(hymnFolders), id)
+        const isFolderHymn = !!(get(shows)[id]?.quickAccess?.sourcePath || hymnFile)
+        if (isFolderHymn) {
+            // Folder hymns live on hymnFolders, not in the shows library. Convert that one
+            // .pptx instead of marking it missing ("Could not find show").
+            if (!get(showsCache)[id]) {
+                const promise = loadSingleShow(id)
+                if (promise) promises.push(promise)
+            }
+        } else if (!get(shows)[id]) {
             notFound.update((a) => {
                 if (!a.show.includes(id)) a.show.push(id)
                 return a

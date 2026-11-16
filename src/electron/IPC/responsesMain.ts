@@ -28,6 +28,7 @@ import { save } from "../data/save"
 import { _store, appDataPath, config, createStores, getStore, getStoreValue, setStoreValue } from "../data/store"
 import { captureSlide, doesMediaExist, getThumbnail, getThumbnailFolderPath, pdfToImage, saveImage } from "../data/thumbnails"
 import { OutputHelper } from "../output/OutputHelper"
+import { pptFirstSlideThumbnail } from "../output/ppt/pptFirstSlideThumbnail"
 import { pptToPdf } from "../output/ppt/pptToPdf"
 import { getPresentationApplications, presentationControl, startSlideshow } from "../output/ppt/presentation"
 import { closeServers, startServers, updateServerData } from "../servers"
@@ -89,6 +90,7 @@ export const mainResponses: MainResponses = {
     [Main.IMPORT_FILES]: (data) => importFiles(data),
     [Main.IMPORT_FOLDER]: (data) => startImportFolder(data),
     [Main.PPT_TO_SHOW]: (data) => convertPowerpointFile(data.filePath),
+    [Main.PPT_FIRST_SLIDE_THUMB]: (data) => pptFirstSlideThumbnail(data.filePath),
     [Main.BIBLE]: (data) => loadScripture(data),
     [Main.SHOW]: (data) => loadShow(data),
     // MAIN
