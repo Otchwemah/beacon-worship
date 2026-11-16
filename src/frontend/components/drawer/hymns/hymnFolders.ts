@@ -60,7 +60,9 @@ export function isHymnFileStub(show: { quickAccess?: any } | null | undefined): 
     return !!show?.quickAccess?.sourcePath
 }
 
-export type HymnFileEntry = { id: string; name: string; path: string; thumbnail?: string; preview?: any }
+export type HymnFileEntry = { id: string; name: string; path: string; thumbnail?: string; preview?: any; previewGen?: number }
+
+export const HYMN_PREVIEW_GEN = 2
 export type HymnFolderEntry = { id: string; name: string; path: string; categoryId: string; icon: string; files?: HymnFileEntry[] }
 
 export function createFolderEntry(id: string, name: string, path: string, categoryId: string, files: HymnFileEntry[] = []): HymnFolderEntry {
@@ -115,7 +117,7 @@ export function setHymnFilePreviews(folders: Categories, previews: Record<string
             const preview = previews[file.id]
             if (!preview || file.preview === preview) return file
             folderChanged = true
-            return { ...file, preview }
+            return { ...file, preview, previewGen: HYMN_PREVIEW_GEN }
         })
         if (folderChanged) {
             changed = true

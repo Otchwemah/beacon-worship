@@ -85,10 +85,10 @@ describe("includeFirstSlideZipEntry", () => {
         expect(includeFirstSlideZipEntry("[Content_Types].xml")).toBe(true)
     })
 
-    it("keeps raster media and drops video/fonts/other slides", () => {
+    it("keeps media and fonts, drops video and other slides", () => {
         expect(includeFirstSlideZipEntry("ppt/media/image1.jpeg")).toBe(true)
+        expect(includeFirstSlideZipEntry("ppt/fonts/font1.fntdata")).toBe(true)
         expect(includeFirstSlideZipEntry("ppt/media/video1.mp4")).toBe(false)
-        expect(includeFirstSlideZipEntry("ppt/fonts/font1.fntdata")).toBe(false)
         expect(includeFirstSlideZipEntry("ppt/slides/slide2.xml")).toBe(false)
         expect(includeFirstSlideZipEntry("ppt/slides/_rels/slide9.xml.rels")).toBe(false)
         expect(includeFirstSlideZipEntry("ppt/notesSlides/notesSlide1.xml")).toBe(false)

@@ -22,12 +22,14 @@ export function firstSlidePreviewFromPpt(content: any): SlidePreview | null {
     const converted = pkg.getSlide(presentation, target)
     if (!converted?.items?.length && !converted?.bgColor) return null
 
+    const fullBleed = (converted.items || []).find((item: any) => item?.src && /width:\s*1920px/i.test(item.style || "") && /height:\s*1080px/i.test(item.style || ""))
+
     const show = {
         slides: {
             preview: {
                 group: ".",
                 color: null,
-                settings: { color: converted.bgColor || "" },
+                settings: { color: converted.bgColor || "", ...(fullBleed?.src ? { backgroundImage: fullBleed.src } : {}) },
                 notes: "",
                 items: converted.items || []
             }

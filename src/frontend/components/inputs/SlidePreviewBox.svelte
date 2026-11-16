@@ -21,27 +21,31 @@
 
     export let preview: SlidePreview
 
-    let container: HTMLDivElement | null = null
-    let scale = 0
-
     $: width = preview?.width || 1920
     $: height = preview?.height || 1080
     $: imagePath = preview?.backgroundImage || preview?.mediaSrc || ""
-    $: items = preview?.items || []
+    $: items = (preview?.items || []).map(encodeItemMedia)
 
-    // measure the available width and scale the fixed-size canvas into it
-    $: if (container && width) measure()
-    function measure() {
-        if (!container) return
-        const available = container.clientWidth
-        if (available > 0) scale = available / width
+    let available = 0
+    $: scale = available > 0 && width ? available / width : 0
+
+    // Local paths inside SVG <image href> must be file://-encoded or Chromium draws an empty shape
+    // (that is what left hymn tiles white — the dark title-card art never loaded).
+    function encodeItemMedia(item: SlidePreview["items"][number]) {
+        if (!item?.customSvg || !item.customSvg.includes("href=")) return item
+        return { ...item, customSvg: encodeSvgHrefs(item.customSvg) }
+    }
+
+    function encodeSvgHrefs(svg: string): string {
+        return svg.replace(/\b(?:xlink:)?href="([^"]+)"/gi, (match, href) => {
+            if (!href || href.startsWith("#") || href.startsWith("data:") || href.startsWith("http")) return match
+            return `href="${encodeFilePath(href)}"`
+        })
     }
 </script>
 
-<svelte:window on:resize={measure} />
-
 {#if preview}
-    <div class="slide-preview" bind:this={container} style="aspect-ratio: {width} / {height};background: {preview.backgroundColor || '#101820'};">
+    <div class="slide-preview" bind:clientWidth={available} style="aspect-ratio: {width} / {height};background: {preview.backgroundColor || '#101820'};">
         {#if scale > 0}
             <div class="canvas" style="width: {width}px;height: {height}px;transform: scale({scale});">
                 {#if imagePath}

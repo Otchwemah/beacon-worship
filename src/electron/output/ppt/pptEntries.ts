@@ -42,17 +42,17 @@ export function isPowerpointDiskEntry(entryName: string): boolean {
 
 // Destination file name inside the per-deck import folder, or null to keep the entry in memory.
 const OTHER_SLIDE = /^ppt\/slides\/(?:_rels\/)?slide(\d+)\.xml(?:\.rels)?$/i
-const FIRST_SLIDE_SKIP = /^(ppt\/notesSlides\/|ppt\/comments\/|ppt\/chart\/|ppt\/diagrams\/|ppt\/embeddings\/|ppt\/fonts\/)/i
-const RASTER_MEDIA = /^ppt\/media\/.+\.(jpe?g|png|gif|webp|bmp|svg)$/i
+const FIRST_SLIDE_SKIP = /^(ppt\/notesSlides\/|ppt\/comments\/)/i
+const VIDEO_MEDIA = /\.(mp4|mov|wmv|avi|m4v|mkv)$/i
 
-// Thumbnail generation only needs slide 1 + layout/master/theme. Skipping the rest is
-// what keeps Load folder from freezing while still drawing the real first slide.
+// Thumbnail generation only needs slide 1 + layout/master/theme. Skipping later slides
+// is what keeps Load folder from freezing while still drawing the real first slide.
 export function includeFirstSlideZipEntry(entryName: string): boolean {
     const name = normalizeEntryName(entryName)
     if (!name) return false
     const slide = name.match(OTHER_SLIDE)
     if (slide) return slide[1] === "1"
-    if (name.startsWith("ppt/media/")) return RASTER_MEDIA.test(name)
+    if (VIDEO_MEDIA.test(name)) return false
     if (FIRST_SLIDE_SKIP.test(name)) return false
     return true
 }

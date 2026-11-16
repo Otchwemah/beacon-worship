@@ -3,7 +3,7 @@ import { Main } from "../../../../types/IPC/Main"
 import { requestMain } from "../../../IPC/main"
 import { hymnFolders, saved } from "../../../stores"
 import { firstSlidePreviewFromPpt } from "../../../converters/powerpoint/hymnFirstSlide"
-import { setHymnFilePreviews } from "./hymnFolders"
+import { HYMN_PREVIEW_GEN, setHymnFilePreviews } from "./hymnFolders"
 
 // After Load folder the grid already has a tile per hymn. This queue then converts
 // SLIDE 1 only of each .pptx and stores a miniature (text + shapes + background).
@@ -20,7 +20,7 @@ export function enqueueMissingHymnThumbnails(folders = get(hymnFolders)) {
     Object.values(folders || {}).forEach((folder) => {
         ;(folder?.files || []).forEach((file) => {
             if (!file?.id || !file.path) return
-            if (file.preview || queued.has(file.id) || finished.has(file.id)) return
+            if ((file.previewGen || 0) >= HYMN_PREVIEW_GEN || queued.has(file.id) || finished.has(file.id)) return
             queued.add(file.id)
             queue.push({ id: file.id, path: file.path })
         })

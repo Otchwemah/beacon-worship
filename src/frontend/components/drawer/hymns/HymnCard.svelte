@@ -55,9 +55,9 @@
         loadShows([id])
     }
 
-    // Folder hymns must never use PowerPoint's blank jpeg — that is what made the tiles white.
-    // The stored first-slide miniature (text + shapes) is the thumbnail.
-    $: livePreview = show.preview || getSlidePreview($showsCache[id])
+    // The opened hymn in the Show panel is the source of truth. Prefer that miniature
+    // over the stored folder preview so a clicked tile matches the first slide.
+    $: livePreview = getSlidePreview($showsCache[id]) || show.preview
     $: thumbnailPath = livePreview || isHymnFileStub($shows[id] || show) ? "" : storedThumbnail
     $: isLive = findMatchingOut(id, $outputs) !== null
     $: isActive = $activeShow?.id === id
