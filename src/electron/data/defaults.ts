@@ -98,6 +98,7 @@ export const defaultSyncedSettings: { [key in SaveListSyncedSettings]: any } = {
     },
     drawSettings: {},
     overlayCategories: {
+        lower_thirds: { name: "category.lower_thirds", icon: "people", default: true },
         offers: { name: "category.offers", icon: "cash", default: true },
         notice: { name: "category.notice", icon: "info", default: true },
         visuals: { name: "category.visuals", icon: "star", default: true }
@@ -105,7 +106,8 @@ export const defaultSyncedSettings: { [key in SaveListSyncedSettings]: any } = {
     templateCategories: {
         song: { name: "category.song", icon: "song", default: true },
         presentation: { name: "category.presentation", icon: "presentation", default: true },
-        scripture: { name: "category.scripture", icon: "scripture", default: true }
+        scripture: { name: "category.scripture", icon: "scripture", default: true },
+        lower_thirds: { name: "category.lower_thirds", icon: "people", default: true }
     },
     styles: {},
     profiles: {},

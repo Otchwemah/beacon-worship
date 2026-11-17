@@ -449,6 +449,7 @@
         "offers": "Ofertas",
         "notice": "Avisos",
         "visuals": "Visuais",
+        "lower_thirds": "Lower Thirds",
         "action_tip": "Uma ação que será ativada toda vez que um Show desta categoria for apresentado.",
         "create_nonexistent": "Criar categorias não-existentes"
     },

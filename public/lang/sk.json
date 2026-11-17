@@ -383,6 +383,7 @@
         "offers": "Ponuky",
         "notice": "Oznamy",
         "visuals": "Vizuály",
+        "lower_thirds": "Lower Thirds",
         "action_tip": "Akcia, ktorá sa spustí pri každej prezentácii s touto kategóriou."
     },
     "groups": {

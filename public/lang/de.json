@@ -417,6 +417,7 @@
         "offers": "Angebote",
         "notice": "Hinweis",
         "visuals": "Visuals",
+        "lower_thirds": "Lower Thirds",
         "action_tip": "Eine Aktion, die jedes Mal ausgelöst wird, wenn eine Show dieser Kategorie präsentiert wird",
         "create_nonexistent": "nicht vorhandene Kategorien erstellen"
     },

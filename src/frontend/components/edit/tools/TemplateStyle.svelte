@@ -14,7 +14,9 @@
     import MaterialNumberInput from "../../inputs/MaterialNumberInput.svelte"
     import MaterialPopupButton from "../../inputs/MaterialPopupButton.svelte"
     import MaterialToggleSwitch from "../../inputs/MaterialToggleSwitch.svelte"
+    import { LOWER_THIRD_CATEGORY } from "../../../utils/lowerThirds"
     import ItemsList from "./ItemsList.svelte"
+    import LowerThirdStudio from "./LowerThirdStudio.svelte"
 
     $: templateId = $activeEdit?.id || ""
     $: template = $templates[templateId] || {}
@@ -55,11 +57,15 @@
         // { value: "text", label: translateText("edit.text") } // hidden
     ]
     $: mode = template.settings?.mode || "default"
+    $: isLowerThird = template.category === LOWER_THIRD_CATEGORY || !!template.settings?.lowerThird
 
     export let allSlideItems: Item[]
 </script>
 
 <div class="tools">
+    {#if isLowerThird}
+        <LowerThirdStudio />
+    {/if}
     <div>
         <MaterialDropdown label="actions.mode" options={modes} value={mode} defaultValue="default" on:change={(e) => setValue(e.detail, "mode")} />
     </div>

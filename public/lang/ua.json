@@ -295,7 +295,8 @@
         "music": "Музика",
         "offers": "Пропозиції",
         "notice": "Повідомлення",
-        "visuals": "Візуальні елементи"
+        "visuals": "Візуальні елементи",
+        "lower_thirds": "Lower Thirds"
     },
     "groups": {
         "current": "Поточний",

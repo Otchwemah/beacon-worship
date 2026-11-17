@@ -446,6 +446,7 @@
         "offers": "Предложения",
         "notice": "Уведомление",
         "visuals": "Визуал",
+        "lower_thirds": "Lower Thirds",
         "action_tip": "Выполнять действие при показе шоу этой категории.",
         "create_nonexistent": "Добавить новые категории"
     },

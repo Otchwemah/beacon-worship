@@ -449,6 +449,7 @@
         "offers": "Offres",
         "notice": "Informations",
         "visuals": "Visuels",
+        "lower_thirds": "Lower Thirds",
         "action_tip": "Une action qui se déclenche à chaque projection d'une présentation de cette catégorie.",
         "create_nonexistent": "Créer des catégories inexistantes"
     },

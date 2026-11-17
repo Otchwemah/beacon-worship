@@ -538,6 +538,19 @@ export interface Emitter {
 export interface Overlays {
     [key: ID]: Overlay
 }
+export interface LowerThirdSettings {
+    variant: string
+    speaker: string
+    title: string
+    organization: string
+    accent: string
+    animation: TransitionType
+    logo?: string
+    photo?: string
+    showLogo: boolean
+    showPhoto: boolean
+}
+
 export interface Overlay {
     isDefault?: boolean
     name: string
@@ -549,6 +562,7 @@ export interface Overlay {
     actions?: any[]
     placeUnderSlide?: boolean
     displayDuration?: number
+    lowerThird?: LowerThirdSettings
 }
 
 export interface Templates {
@@ -577,6 +591,7 @@ export interface TemplateSettings {
     overlayId?: string
     firstSlideTemplate?: string
     createFirstSlide?: boolean
+    lowerThird?: LowerThirdSettings
     maxLinesPerSlide?: number | string // auto break slides if more than set lines
     breakLongLines?: number | string // auto break lines if longer than set words
     actions?: any[]

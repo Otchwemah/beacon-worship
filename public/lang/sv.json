@@ -417,6 +417,7 @@
         "offers": "Erbjudanden",
         "notice": "Meddelande",
         "visuals": "Visuellt",
+        "lower_thirds": "Lower Thirds",
         "action_tip": "En åtgärd som utlöses varje gång en visning med den här kategorin presenteras.",
         "create_nonexistent": "Skapa icke existerande kategorier"
     },

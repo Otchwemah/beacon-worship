@@ -417,6 +417,7 @@
         "offers": "Tarjoukset",
         "notice": "Ilmoitus",
         "visuals": "Visuaaliset elementit",
+        "lower_thirds": "Lower Thirds",
         "action_tip": "Toiminto, joka käynnistetään aina, kun tämän kategorian esitys näytetään.",
         "create_nonexistent": "Luo olemattomia luokkia"
     },

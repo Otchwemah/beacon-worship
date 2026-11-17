@@ -295,7 +295,8 @@
         "music": "Muzika",
         "offers": "Ponude",
         "notice": "Obaveštenja",
-        "visuals": "vizuali"
+        "visuals": "vizuali",
+        "lower_thirds": "Lower Thirds"
     },
     "groups": {
         "current": "Trenutna",

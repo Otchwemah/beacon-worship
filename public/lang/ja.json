@@ -399,6 +399,7 @@
         "offers": "献金",
         "notice": "お知らせ",
         "visuals": "ビジュアル",
+        "lower_thirds": "Lower Thirds",
         "action_tip": "このカテゴリのショーが提示されるたびに実行されるアクションです。"
     },
     "groups": {

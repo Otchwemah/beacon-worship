@@ -7,6 +7,7 @@ import { setShow } from "../components/helpers/setShow"
 import { activePopup, audioFolders, deletedDefaults, effects, folders, language, mediaFolders, outputs, overlays, projects, scriptures, serverData, shows, templates, variables } from "../stores"
 import { stageShows, templateCategories } from "./../stores"
 import { translateText } from "./language"
+import { ensureLowerThirdCategory, getDefaultLowerThirdOverlays, getDefaultLowerThirdTemplates } from "./lowerThirds"
 import { save } from "./save"
 
 export function createData(paths: MainFilePaths) {
@@ -388,6 +389,7 @@ export function setExampleOverlays() {
         return a
     })
 
+    ensureLowerThirdCategory()
     overlays.set({ ...get(overlays), ...getDefaultOverlays() })
 }
 
@@ -510,7 +512,7 @@ function getDefaultOverlays() {
     //     items: [{ style: "left: 0px;width: calc(1920px * (var(--variable-slide) / var(--variable-slides)));height:20px;top:1060px;background-color:#FF851B;", lines: [{ align: "", text: [{ value: "", style: "" }] }] }]
     // }
 
-    return a
+    return { ...a, ...getDefaultLowerThirdOverlays() }
 }
 
 // TEMPLATES
@@ -526,6 +528,7 @@ export function setExampleTemplates() {
         return a
     })
 
+    ensureLowerThirdCategory()
     templates.set({ ...get(templates), ...getDefaultTemplates() })
     createDoubleTemplate()
 }
@@ -982,7 +985,7 @@ function getDefaultTemplates() {
         ]
     }
 
-    return { ...a, ...getDefaultScriptureTemplates() }
+    return { ...a, ...getDefaultScriptureTemplates(), ...getDefaultLowerThirdTemplates() }
 }
 
 function getDefaultScriptureTemplates() {
@@ -1393,6 +1396,7 @@ export function getDefaultElements() {
     getDeletedEffects()
 
     // check if there's any missing element that should be added, that is not deleted
+    ensureLowerThirdCategory()
     createDefaultTemplates()
     createDefaultOverlays()
     createDefaultEffects()

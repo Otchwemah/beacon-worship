@@ -308,7 +308,8 @@
         "music": "Âm nhạc",
         "offers": "Cung cấp",
         "notice": "Thông báo",
-        "visuals": "Hình ảnh trực quan"
+        "visuals": "Hình ảnh trực quan",
+        "lower_thirds": "Lower Thirds"
     },
     "groups": {
         "current": "Hiện tại",

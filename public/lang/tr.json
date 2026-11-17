@@ -449,6 +449,7 @@
         "offers": "Teklifler",
         "notice": "Bildiri",
         "visuals": "Görseller",
+        "lower_thirds": "Lower Thirds",
         "action_tip": "Bu kategoriye ait bir gösteri her sunulduğunda tetiklenen bir eylem.",
         "create_nonexistent": "Var olmayan kategoriler oluşturun"
     },

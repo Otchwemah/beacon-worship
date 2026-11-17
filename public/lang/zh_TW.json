@@ -412,6 +412,7 @@
         "offers": "奉獻",
         "notice": "公告",
         "visuals": "視覺效果",
+        "lower_thirds": "Lower Thirds",
         "action_tip": "呈現此類別曲目時觸發的動作。",
         "create_nonexistent": "建立不存在的類別"
     },

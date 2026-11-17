@@ -449,6 +449,7 @@
         "offers": "Nabídky",
         "notice": "Poznámka",
         "visuals": "Visuály",
+        "lower_thirds": "Lower Thirds",
         "action_tip": "Akce, která se spustí pokaždé, když je prezentace této kategorie uvedena.",
         "create_nonexistent": "Vytvořit neexistující kategorie"
     },

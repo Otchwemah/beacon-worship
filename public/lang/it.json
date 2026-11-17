@@ -417,6 +417,7 @@
         "offers": "Offerte",
         "notice": "Avviso",
         "visuals": "Elementi visivi",
+        "lower_thirds": "Lower Thirds",
         "action_tip": "Un'azione che si attiva ogni volta che viene presentata una scena con questa categoria.",
         "create_nonexistent": "Crea categorie non esistenti"
     },

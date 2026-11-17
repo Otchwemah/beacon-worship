@@ -449,6 +449,7 @@
         "offers": "Kolekta",
         "notice": "Ogłoszenia",
         "visuals": "Animacje",
+        "lower_thirds": "Lower Thirds",
         "action_tip": "Akcja uruchamiana za każdym razem, gdy prezentowany jest pokaz z tej kategorii.",
         "create_nonexistent": "Utwórz nieistniejące kategorie"
     },

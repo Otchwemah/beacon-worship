@@ -449,6 +449,7 @@
         "offers": "Collectes",
         "notice": "Mededelingen",
         "visuals": "Beeldmaterialen",
+        "lower_thirds": "Lower Thirds",
         "action_tip": "Een actie die wordt geactiveerd, telkens wanneer een show met deze categorie wordt gepresenteerd.",
         "create_nonexistent": "Niet-bestaande categorieën maken"
     },

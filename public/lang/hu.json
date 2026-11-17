@@ -449,6 +449,7 @@
         "offers": "Adakozás",
         "notice": "Figyelem",
         "visuals": "Látványok",
+        "lower_thirds": "Lower Thirds",
         "action_tip": "Egy művelet, mely kiváltódik minden olyan esetben, amikor ilyen kategóriájú bemutató vetítésre kerül.",
         "create_nonexistent": "Nem létező kategóriák létrehozása"
     },

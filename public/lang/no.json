@@ -457,6 +457,7 @@
         "offers": "Kollekt",
         "notice": "Merk",
         "visuals": "Visuelt",
+        "lower_thirds": "Lower Thirds",
         "action_tip": "En handling som utføres hver gang et show med denne kategorien blir presentert.",
         "create_nonexistent": "Opprett ikke-eksisterende kategorier"
     },
