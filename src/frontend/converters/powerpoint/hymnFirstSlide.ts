@@ -1,9 +1,11 @@
+import { get } from "svelte/store"
 import type { Show } from "../../../types/Show"
 import { getSlidePreview, type SlidePreview } from "../../components/inputs/showThumbnail"
+import { special } from "../../stores"
 import { PowerPointPackage } from "./PowerPointHelper"
 
-// Build the Hymns-grid miniature from slide 1 only. Does not apply the Settings hymn
-// background — that would paint every tile the same and hide the lyrics.
+// Build the Hymns-grid miniature from slide 1. If a hymn background is set in Settings,
+// stamp it on the preview so tiles match what the operator sees after opening the deck.
 
 export function firstSlidePreviewFromPpt(content: any): SlidePreview | null {
     if (!content) return null
@@ -39,5 +41,10 @@ export function firstSlidePreviewFromPpt(content: any): SlidePreview | null {
         media: {}
     } as Show
 
-    return getSlidePreview(show)
+    const preview = getSlidePreview(show)
+    if (!preview) return null
+
+    const hymnBg = get(special).hymnBackgroundImage || ""
+    if (hymnBg) return { ...preview, backgroundImage: hymnBg }
+    return preview
 }

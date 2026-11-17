@@ -1,7 +1,7 @@
 <script lang="ts">
     import { onMount } from "svelte"
     import type { ShowList } from "../../../../types/Show"
-    import { activePage, activeShow, outputs, shows, showsCache } from "../../../stores"
+    import { activePage, activeShow, outputs, shows, showsCache, special } from "../../../stores"
     import { encodeFilePath } from "../../helpers/media"
     import { findMatchingOut } from "../../helpers/output"
     import { isHymnFileStub } from "./hymnFolders"
@@ -55,9 +55,18 @@
         loadShows([id])
     }
 
-    // The opened hymn in the Show panel is the source of truth. Prefer that miniature
-    // over the stored folder preview so a clicked tile matches the first slide.
-    $: livePreview = getSlidePreview($showsCache[id]) || show.preview
+    // Opened deck first, then the stored miniature. Settings hymn background fills in
+    // when the stored preview has none — that is what went white after restart.
+    $: cachedPreview = getSlidePreview($showsCache[id])
+    $: storedPreview = show.preview
+    $: hymnBg = $special.hymnBackgroundImage || ""
+    $: livePreview = withHymnBackground(cachedPreview || storedPreview, hymnBg)
+
+    function withHymnBackground(preview: any, background: string) {
+        if (!preview) return preview
+        if (!background) return preview
+        return { ...preview, backgroundImage: background }
+    }
     $: thumbnailPath = livePreview || isHymnFileStub($shows[id] || show) ? "" : storedThumbnail
     $: isLive = findMatchingOut(id, $outputs) !== null
     $: isActive = $activeShow?.id === id

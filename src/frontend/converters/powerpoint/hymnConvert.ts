@@ -78,11 +78,9 @@ async function convertOne(showId: string, filePath: string, trimmed: { name?: st
             hymnFolders.update((folders) => setHymnFileThumbnails(folders, { [showId]: thumbnail }))
         }
         if (preview) {
-            hymnFolders.update((folders) => {
-                const existing = findHymnFile(folders, showId)
-                if (existing?.preview) return folders
-                return setHymnFilePreviews(folders, { [showId]: preview })
-            })
+            // Always replace the folder miniature with this conversion. The idle first-slide
+            // pass often misses the title-card art; this is the preview that survives restart.
+            hymnFolders.update((folders) => setHymnFilePreviews(folders, { [showId]: preview }))
         }
 
         saved.set(false)

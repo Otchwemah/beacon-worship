@@ -62,7 +62,7 @@ export function isHymnFileStub(show: { quickAccess?: any } | null | undefined): 
 
 export type HymnFileEntry = { id: string; name: string; path: string; thumbnail?: string; preview?: any; previewGen?: number }
 
-export const HYMN_PREVIEW_GEN = 2
+export const HYMN_PREVIEW_GEN = 3
 export type HymnFolderEntry = { id: string; name: string; path: string; categoryId: string; icon: string; files?: HymnFileEntry[] }
 
 export function createFolderEntry(id: string, name: string, path: string, categoryId: string, files: HymnFileEntry[] = []): HymnFolderEntry {
